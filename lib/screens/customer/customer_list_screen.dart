@@ -92,6 +92,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       return;
     }
 
+    if (!mounted) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

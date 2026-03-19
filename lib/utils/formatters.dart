@@ -3,13 +3,13 @@ import 'package:intl/intl.dart';
 class Formatters {
   static final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '₹',
+    symbol: 'Rs. ',
     decimalDigits: 0,
   );
 
   static final NumberFormat _currencyFormatWithDecimals = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '₹',
+    symbol: 'Rs. ',
     decimalDigits: 2,
   );
 

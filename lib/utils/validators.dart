@@ -156,7 +156,7 @@ class Validators {
       return 'Please enter a valid number';
     }
     if (amount < 100) {
-      return 'Minimum EMI amount is ₹100';
+      return 'Minimum EMI amount is Rs. 100';
     }
     return null;
   }

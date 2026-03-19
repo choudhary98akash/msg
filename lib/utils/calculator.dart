@@ -2,7 +2,7 @@ import 'dart:math';
 
 class Calculator {
   static double calculateArea(double length, double breadth) {
-    return length * breadth;
+    return (length * breadth) / 9;
   }
 
   static double calculateTotalPrice(double area, double ratePerGaj) {

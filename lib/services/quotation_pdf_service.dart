@@ -4,7 +4,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/quotation_model.dart';
 import '../utils/formatters.dart';
-import '../utils/calculator.dart';
 import '../utils/amount_to_words.dart';
 import '../config/constants.dart';
 
@@ -285,7 +284,7 @@ class QuotationPdfService {
                   ),
                   pw.Padding(
                     padding: const pw.EdgeInsets.all(6),
-                    child: pw.Text(Formatters.formatCurrency(emiAmount) + '/month', textAlign: pw.TextAlign.right),
+                    child: pw.Text('${Formatters.formatCurrency(emiAmount)}/month', textAlign: pw.TextAlign.right),
                   ),
                 ],
               ),

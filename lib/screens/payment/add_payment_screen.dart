@@ -143,13 +143,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       final paymentId = await _dbService.insertPayment(payment);
       payment.id = paymentId;
 
-      if (mounted) {
-        await _showReceiptDialog(payment);
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment added successfully')),
-        );
-      }
+      await _showReceiptDialog(payment);
+      
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment added successfully')),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -388,7 +388,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         if (_paymentMode == 'Cheque' || _paymentMode == 'DD')
           TextFormField(
             controller: _chequeNumberController,
-            decoration: InputDecoration(labelText: '${_paymentMode} Number', prefixIcon: const Icon(Icons.numbers)),
+            decoration: InputDecoration(labelText: '$_paymentMode Number', prefixIcon: const Icon(Icons.numbers)),
           ),
         if (_paymentMode == 'Bank Transfer' || _paymentMode == 'RTGS' || _paymentMode == 'NEFT')
           TextFormField(

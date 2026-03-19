@@ -52,7 +52,7 @@ class AmountToWords {
     }
 
     if (number >= 20) {
-      words += '${tens[number ~/ 10]}';
+      words += tens[number ~/ 10];
       if (number % 10 != 0) {
         words += ' ${units[number % 10]}';
       }
@@ -64,6 +64,6 @@ class AmountToWords {
   }
 
   static String convertWithCurrency(double amount) {
-    return '${convert(amount)} Only';
+    return '${convert(amount)} Only/Rs';
   }
 }

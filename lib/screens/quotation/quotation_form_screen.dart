@@ -243,61 +243,100 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.quotation != null ? 'Edit Quotation' : 'Create Quotation')),
+      appBar: AppBar(
+        title: Text(widget.quotation != null ? 'Edit Quotation' : 'Create Quotation'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             _buildCustomerSection(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Plot Details'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            _buildSectionHeader(Icons.home_work, 'Plot Details'),
+            const SizedBox(height: 12),
             _buildPlotDetails(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Dimensions & Pricing'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            _buildSectionHeader(Icons.straighten, 'Dimensions & Pricing'),
+            const SizedBox(height: 12),
             _buildDimensions(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Payment Terms'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            _buildSectionHeader(Icons.payment, 'Payment Terms'),
+            const SizedBox(height: 12),
             _buildPaymentTerms(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Validity'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            _buildSectionHeader(Icons.timer, 'Validity'),
+            const SizedBox(height: 12),
             _buildValidity(),
             const SizedBox(height: 16),
             TextFormField(
               controller: _remarksController,
-              decoration: const InputDecoration(labelText: 'Remarks', prefixIcon: Icon(Icons.note)),
+              decoration: const InputDecoration(
+                labelText: 'Remarks',
+                prefixIcon: Icon(Icons.note_alt_outlined),
+              ),
               maxLines: 2,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isLoading ? null : _saveQuotation,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Create Quotation'),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor));
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildCustomerSection() {
     return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Customer Details', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.person, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                const Text(
+                  'Customer Details',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -321,12 +360,11 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             if (_isExistingCustomer)
               DropdownButtonFormField<CustomerModel>(
                 value: _selectedCustomer,
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.person)),
-                hint: const Text('Choose customer'),
+                decoration: const InputDecoration(hintText: 'Choose customer'),
                 items: _customers.map((c) => DropdownMenuItem(
                   value: c,
                   child: Text('${c.name} - ${c.phone ?? "No phone"}'),
@@ -337,14 +375,20 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
             else ...[
               TextFormField(
                 controller: _customerNameController,
-                decoration: const InputDecoration(labelText: 'Customer Name *', prefixIcon: Icon(Icons.person)),
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name *',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
                 validator: Validators.validateName,
                 textCapitalization: TextCapitalization.words,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone)),
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
                 keyboardType: TextInputType.phone,
               ),
             ],
@@ -355,147 +399,224 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   }
 
   Widget _buildPlotDetails() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _plotNumberController,
-          decoration: const InputDecoration(labelText: 'Plot Number *', prefixIcon: Icon(Icons.home)),
-          validator: Validators.validatePlotNumber,
-        ),
-        const SizedBox(height: 12),
-        Row(
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Expanded(child: TextFormField(controller: _blockController, decoration: const InputDecoration(labelText: 'Block'))),
-            const SizedBox(width: 12),
-            Expanded(child: TextFormField(controller: _sectorController, decoration: const InputDecoration(labelText: 'Sector'))),
+            TextFormField(
+              controller: _plotNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Plot Number *',
+                prefixIcon: Icon(Icons.home_outlined),
+              ),
+              validator: Validators.validatePlotNumber,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _blockController,
+                    decoration: const InputDecoration(
+                      labelText: 'Block',
+                      prefixIcon: Icon(Icons.grid_view_outlined),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _sectorController,
+                    decoration: const InputDecoration(
+                      labelText: 'Sector',
+                      prefixIcon: Icon(Icons.location_city_outlined),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _locationController,
-          decoration: const InputDecoration(labelText: 'Location', prefixIcon: Icon(Icons.location_on)),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildDimensions() {
-    return Column(
-      children: [
-        Row(
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Expanded(
-              child: TextFormField(
-                controller: _lengthController,
-                decoration: const InputDecoration(labelText: 'Length (ft) *', prefixIcon: Icon(Icons.straighten)),
-                keyboardType: TextInputType.number,
-                validator: (v) => Validators.validateDimension(v, 'Length'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _lengthController,
+                    decoration: const InputDecoration(
+                      labelText: 'Length (ft) *',
+                      prefixIcon: Icon(Icons.straighten),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.validateDimension(v, 'Length'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _breadthController,
+                    decoration: const InputDecoration(
+                      labelText: 'Breadth (ft) *',
+                      prefixIcon: Icon(Icons.straighten),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.validateDimension(v, 'Breadth'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _breadthController,
-                decoration: const InputDecoration(labelText: 'Breadth (ft) *', prefixIcon: Icon(Icons.straighten)),
-                keyboardType: TextInputType.number,
-                validator: (v) => Validators.validateDimension(v, 'Breadth'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _areaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Area (Gaj)',
+                      prefixIcon: Icon(Icons.square_foot),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _rateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Rate/Gaj *',
+                      prefixIcon: Icon(Icons.currency_rupee),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: Validators.validateRate,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _totalPriceController,
+              decoration: const InputDecoration(
+                labelText: 'Total Price',
+                prefixIcon: Icon(Icons.calculate),
               ),
+              keyboardType: TextInputType.number,
+              readOnly: true,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _areaController,
-                decoration: const InputDecoration(labelText: 'Area (Gaj)', prefixIcon: Icon(Icons.square_foot)),
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _rateController,
-                decoration: const InputDecoration(labelText: 'Rate/Gaj *', prefixIcon: Icon(Icons.currency_rupee)),
-                keyboardType: TextInputType.number,
-                validator: Validators.validateRate,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _totalPriceController,
-          decoration: const InputDecoration(labelText: 'Total Price', prefixIcon: Icon(Icons.calculate)),
-          keyboardType: TextInputType.number,
-          readOnly: true,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildPaymentTerms() {
-    return Column(
-      children: [
-        Row(
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Expanded(
-              child: TextFormField(
-                controller: _downPaymentPercentController,
-                decoration: const InputDecoration(labelText: 'Down Payment %', prefixIcon: Icon(Icons.percent)),
-                keyboardType: TextInputType.number,
-                validator: Validators.validateDownPaymentPercent,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _downPaymentPercentController,
+                    decoration: const InputDecoration(
+                      labelText: 'Down Payment %',
+                      prefixIcon: Icon(Icons.percent),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: Validators.validateDownPaymentPercent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _downPaymentAmountController,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount',
+                      prefixIcon: Icon(Icons.currency_rupee),
+                    ),
+                    keyboardType: TextInputType.number,
+                    readOnly: true,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _downPaymentAmountController,
-                decoration: const InputDecoration(labelText: 'Amount', prefixIcon: Icon(Icons.currency_rupee)),
-                keyboardType: TextInputType.number,
-                readOnly: true,
-              ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _emiMonthsController,
+                    decoration: const InputDecoration(
+                      labelText: 'EMI Months',
+                      prefixIcon: Icon(Icons.calendar_month),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: Validators.validateEmiMonths,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _emiAmountController,
+                    decoration: const InputDecoration(
+                      labelText: 'EMI Amount',
+                      prefixIcon: Icon(Icons.currency_rupee),
+                    ),
+                    keyboardType: TextInputType.number,
+                    readOnly: true,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _emiMonthsController,
-                decoration: const InputDecoration(labelText: 'EMI Months', prefixIcon: Icon(Icons.calendar_month)),
-                keyboardType: TextInputType.number,
-                validator: Validators.validateEmiMonths,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _emiAmountController,
-                decoration: const InputDecoration(labelText: 'EMI Amount', prefixIcon: Icon(Icons.currency_rupee)),
-                keyboardType: TextInputType.number,
-                readOnly: true,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildValidity() {
-    return TextFormField(
-      controller: _validityDaysController,
-      decoration: const InputDecoration(
-        labelText: 'Validity (Days)',
-        prefixIcon: Icon(Icons.timer),
-        helperText: 'Quotation will be valid for this many days',
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextFormField(
+          controller: _validityDaysController,
+          decoration: const InputDecoration(
+            labelText: 'Validity (Days)',
+            prefixIcon: Icon(Icons.timer_outlined),
+            helperText: 'Quotation will be valid for this many days',
+          ),
+          keyboardType: TextInputType.number,
+        ),
       ),
-      keyboardType: TextInputType.number,
     );
   }
 }

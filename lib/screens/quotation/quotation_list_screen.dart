@@ -16,12 +16,14 @@ class QuotationListScreen extends StatefulWidget {
 
 class _QuotationListScreenState extends State<QuotationListScreen> with SingleTickerProviderStateMixin {
   final DatabaseService _dbService = DatabaseService();
+  final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
 
   List<QuotationModel> _allQuotations = [];
   List<QuotationModel> _filteredQuotations = [];
   bool _isLoading = true;
   String _filterStatus = 'all';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -44,12 +47,24 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
   }
 
   void _filterQuotations() {
+    List<QuotationModel> baseList = _searchQuery.isEmpty
+        ? _allQuotations
+        : _allQuotations.where((q) {
+            final customerName = q.customerName.toLowerCase();
+            final plotNumber = (q.plotNumber ?? '').toLowerCase();
+            final location = (q.location ?? '').toLowerCase();
+            final query = _searchQuery.toLowerCase();
+            return customerName.contains(query) ||
+                   plotNumber.contains(query) ||
+                   location.contains(query);
+          }).toList();
+
     if (_filterStatus == 'all') {
-      _filteredQuotations = _allQuotations;
+      _filteredQuotations = baseList;
     } else if (_filterStatus == 'expired') {
-      _filteredQuotations = _allQuotations.where((q) => q.isExpired).toList();
+      _filteredQuotations = baseList.where((q) => q.isExpired).toList();
     } else {
-      _filteredQuotations = _allQuotations.where((q) => q.status == _filterStatus).toList();
+      _filteredQuotations = baseList.where((q) => q.status == _filterStatus).toList();
     }
   }
 
@@ -110,44 +125,123 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quotations'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Pending'),
-            Tab(text: 'Accepted'),
-            Tab(text: 'Expired'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _filteredQuotations.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.description, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No quotations found',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadQuotations,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _filteredQuotations.length,
-                    itemBuilder: (context, index) {
-                      final quotation = _filteredQuotations[index];
-                      return _buildQuotationCard(quotation);
-                    },
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadQuotations,
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(130),
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    _filterQuotations();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search by customer, plot or location...',
+                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                              _filterQuotations();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
+              ),
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  indicatorColor: AppTheme.primaryColor,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  tabs: const [
+                    Tab(text: 'All'),
+                    Tab(text: 'Pending'),
+                    Tab(text: 'Accepted'),
+                    Tab(text: 'Expired'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_filteredQuotations.length} ${_filteredQuotations.length == 1 ? 'Quotation' : 'Quotations'}',
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (!_isLoading && _filteredQuotations.isNotEmpty)
+                  Text(
+                    'Total: ${Formatters.formatCurrency(_filteredQuotations.fold<double>(0, (sum, q) => sum + q.totalPrice))}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredQuotations.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _loadQuotations,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 80),
+                          itemCount: _filteredQuotations.length,
+                          itemBuilder: (context, index) {
+                            final quotation = _filteredQuotations[index];
+                            return _buildQuotationCard(quotation);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
@@ -158,15 +252,72 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _searchQuery.isEmpty ? Icons.description_outlined : Icons.search_off,
+                  size: 64,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _searchQuery.isEmpty ? 'No Quotations Yet' : 'No Results Found',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _searchQuery.isEmpty
+                    ? 'Start by creating your first quotation'
+                    : 'Try a different search term',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_searchQuery.isEmpty)
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QuotationFormScreen()),
+                  ).then((_) => _loadQuotations()),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create Quotation'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuotationCard(QuotationModel quotation) {
     final statusColor = _getStatusColor(quotation);
     final isExpired = quotation.isExpired;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Slidable(
         endActionPane: ActionPane(
           motion: const ScrollMotion(),
+          extentRatio: 0.5,
           children: [
             SlidableAction(
               onPressed: (_) => Navigator.push(
@@ -179,6 +330,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
               foregroundColor: Colors.white,
               icon: Icons.visibility,
               label: 'View',
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
             ),
             SlidableAction(
               onPressed: (_) => _deleteQuotation(quotation),
@@ -186,10 +338,13 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
               foregroundColor: Colors.white,
               icon: Icons.delete,
               label: 'Delete',
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
             ),
           ],
         ),
         child: Card(
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
           child: InkWell(
             onTap: () => Navigator.push(
               context,
@@ -199,78 +354,155 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
             ).then((_) => _loadQuotations()),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        quotation.customerName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                        child: Text(
+                          quotation.customerName.isNotEmpty
+                              ? quotation.customerName.substring(0, 1).toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              quotation.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.home, size: 14, color: Colors.grey.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Plot ${quotation.plotNumber}',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                ),
+                                if (quotation.location != null) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: Text(
+                                      quotation.location!,
+                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           isExpired ? 'EXPIRED' : quotation.status.toUpperCase(),
-                          style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.home, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Plot ${quotation.plotNumber}',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
                       Expanded(
-                        child: Text(
-                          quotation.location ?? 'N/A',
-                          style: TextStyle(color: Colors.grey[600]),
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Area',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              Formatters.formatArea(quotation.totalArea),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Rate',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${Formatters.formatCurrency(quotation.ratePerGaj)}/sq.ft',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Total Price',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              Formatters.formatCurrency(quotation.totalPrice),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Icon(Icons.schedule, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
                       Text(
-                        Formatters.formatArea(quotation.totalArea),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      Text(
-                        Formatters.formatCurrency(quotation.totalPrice),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor),
+                        quotation.validUntil != null
+                            ? isExpired
+                                ? 'Expired on ${Formatters.formatDate(quotation.validUntil!)}'
+                                : 'Valid till ${Formatters.formatDate(quotation.validUntil!)}'
+                            : 'No expiry',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isExpired ? Colors.red : Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
-                  if (quotation.validUntil != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        isExpired
-                            ? 'Expired on ${Formatters.formatDate(quotation.validUntil!)}'
-                            : 'Valid until ${Formatters.formatDate(quotation.validUntil!)}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isExpired ? Colors.red : Colors.grey,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -284,12 +516,12 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
     if (quotation.isExpired) return Colors.red;
     switch (quotation.status.toLowerCase()) {
       case 'accepted':
-        return Colors.green;
+        return const Color(0xFF388E3C);
       case 'rejected':
         return Colors.red;
       case 'pending':
       default:
-        return Colors.orange;
+        return const Color(0xFFFF9800);
     }
   }
 }

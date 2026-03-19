@@ -6,6 +6,7 @@ import '../../models/customer_model.dart';
 import '../../utils/validators.dart';
 import '../../utils/formatters.dart';
 import '../../config/constants.dart';
+import '../../config/theme.dart';
 import '../../services/receipt_pdf_service.dart';
 
 class AddPaymentScreen extends StatefulWidget {
@@ -83,7 +84,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       context: context,
       initialDate: _paymentDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date != null) {
       setState(() => _paymentDate = date);
@@ -105,7 +106,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Future Date'),
-          content: const Text('Payment date is in the future. Mark as pending?'),
+          content: const Text('Payment date is in the future. Continue?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -165,8 +166,29 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     final action = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Payment Added'),
-        content: Text('Receipt Number: ${payment.receiptNumber}'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.check_circle, color: AppTheme.secondaryColor),
+            ),
+            const SizedBox(width: 12),
+            const Text('Payment Added'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Receipt Number: ${payment.receiptNumber}'),
+            const SizedBox(height: 8),
+            Text('Amount: ${Formatters.formatCurrency(payment.amount)}'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'close'),
@@ -221,80 +243,153 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.payment != null ? 'Edit Payment' : 'Add Payment')),
+      appBar: AppBar(
+        title: Text(widget.payment != null ? 'Edit Payment' : 'Add Payment'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            _buildSectionHeader(Icons.home_work, 'Booking Selection'),
+            const SizedBox(height: 12),
             _buildBookingSelector(),
             const SizedBox(height: 16),
-            if (_selectedBooking != null && _customer != null) _buildBookingInfo(),
-            const SizedBox(height: 24),
-            _buildPaymentTypeSelector(),
-            const SizedBox(height: 16),
-            _buildAmountField(),
-            const SizedBox(height: 16),
-            _buildPaymentModeSelector(),
-            const SizedBox(height: 16),
+            if (_selectedBooking != null && _customer != null) ...[
+              _buildBookingInfo(),
+              const SizedBox(height: 20),
+            ],
+            _buildSectionHeader(Icons.payment, 'Payment Details'),
+            const SizedBox(height: 12),
+            _buildPaymentDetails(),
+            const SizedBox(height: 20),
+            _buildSectionHeader(Icons.calendar_today, 'Payment Date'),
+            const SizedBox(height: 12),
             _buildDateSelector(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildBankDetails(),
             const SizedBox(height: 16),
             TextFormField(
               controller: _remarksController,
-              decoration: const InputDecoration(labelText: 'Remarks', prefixIcon: Icon(Icons.note)),
+              decoration: const InputDecoration(
+                labelText: 'Remarks',
+                prefixIcon: Icon(Icons.note_alt_outlined),
+              ),
               maxLines: 2,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isLoading ? null : _savePayment,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Save Payment'),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBookingSelector() {
-    return DropdownButtonFormField<BookingModel>(
-      value: _selectedBooking,
-      decoration: const InputDecoration(labelText: 'Select Booking *', prefixIcon: Icon(Icons.home_work)),
-      hint: const Text('Choose booking'),
-      items: _bookings.map((b) => DropdownMenuItem(
-        value: b,
-        child: Text('Plot ${b.plotNumber} - ${b.location ?? "N/A"}'),
-      )).toList(),
-      onChanged: (value) {
-        if (value != null) _selectBooking(value);
-      },
-      validator: (value) => value == null ? 'Please select a booking' : null,
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: DropdownButtonFormField<BookingModel>(
+          value: _selectedBooking,
+          decoration: const InputDecoration(
+            hintText: 'Choose booking',
+          ),
+          items: _bookings.map((b) => DropdownMenuItem(
+            value: b,
+            child: Text('Plot ${b.plotNumber} - ${b.location ?? "N/A"}'),
+          )).toList(),
+          onChanged: (value) {
+            if (value != null) _selectBooking(value);
+          },
+          validator: (value) => value == null ? 'Please select a booking' : null,
+        ),
+      ),
     );
   }
 
   Widget _buildBookingInfo() {
     final booking = _selectedBooking!;
     return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_customer!.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(_customer!.phone ?? 'No phone', style: TextStyle(color: Colors.grey[600])),
-            const Divider(),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                  child: Text(
+                    _customer!.name.isNotEmpty ? _customer!.name.substring(0, 1).toUpperCase() : '?',
+                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _customer!.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        _customer!.phone ?? 'No phone',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total Price:'),
-                Text(Formatters.formatCurrency(booking.totalPrice), style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  Formatters.formatCurrency(booking.totalPrice),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -302,12 +397,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 Text(Formatters.formatCurrency(booking.downPaymentAmount)),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('EMI:'),
-                Text('${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths}'),
+                const Text('EMI Amount:'),
+                Text('${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths} months'),
               ],
             ),
           ],
@@ -316,58 +411,87 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     );
   }
 
-  Widget _buildPaymentTypeSelector() {
-    return DropdownButtonFormField<String>(
-      value: _paymentType,
-      decoration: const InputDecoration(labelText: 'Payment Type *', prefixIcon: Icon(Icons.category)),
-      items: AppConstants.paymentTypes.map((type) => DropdownMenuItem(
-        value: type,
-        child: Text(type),
-      )).toList(),
-      onChanged: (value) => setState(() => _paymentType = value!),
-    );
-  }
-
-  Widget _buildAmountField() {
-    return TextFormField(
-      controller: _amountController,
-      decoration: const InputDecoration(labelText: 'Amount *', prefixIcon: Icon(Icons.currency_rupee)),
-      keyboardType: TextInputType.number,
-      validator: Validators.validateAmount,
-    );
-  }
-
-  Widget _buildPaymentModeSelector() {
-    return DropdownButtonFormField<String>(
-      value: _paymentMode,
-      decoration: const InputDecoration(labelText: 'Payment Mode *', prefixIcon: Icon(Icons.payment)),
-      items: AppConstants.paymentModes.map((mode) => DropdownMenuItem(
-        value: mode,
-        child: Text(mode),
-      )).toList(),
-      onChanged: (value) => setState(() => _paymentMode = value!),
+  Widget _buildPaymentDetails() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              value: _paymentType,
+              decoration: const InputDecoration(
+                labelText: 'Payment Type *',
+                prefixIcon: Icon(Icons.category_outlined),
+              ),
+              items: AppConstants.paymentTypes.map((type) => DropdownMenuItem(
+                value: type,
+                child: Text(type),
+              )).toList(),
+              onChanged: (value) => setState(() => _paymentType = value!),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _amountController,
+              decoration: const InputDecoration(
+                labelText: 'Amount *',
+                prefixIcon: Icon(Icons.currency_rupee),
+              ),
+              keyboardType: TextInputType.number,
+              validator: Validators.validateAmount,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _paymentMode,
+              decoration: const InputDecoration(
+                labelText: 'Payment Mode *',
+                prefixIcon: Icon(Icons.payment),
+              ),
+              items: AppConstants.paymentModes.map((mode) => DropdownMenuItem(
+                value: mode,
+                child: Text(mode),
+              )).toList(),
+              onChanged: (value) => setState(() => _paymentMode = value!),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildDateSelector() {
-    return InkWell(
-      onTap: _selectDate,
-      child: InputDecorator(
-        decoration: const InputDecoration(labelText: 'Payment Date', prefixIcon: Icon(Icons.calendar_today)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(Formatters.formatDate(_paymentDate)),
-            if (_paymentDate.isAfter(DateTime.now()))
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('Future', style: TextStyle(fontSize: 12, color: Colors.orange)),
-              ),
-          ],
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: InkWell(
+          onTap: _selectDate,
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Payment Date',
+              prefixIcon: Icon(Icons.calendar_today),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(Formatters.formatDate(_paymentDate)),
+                if (_paymentDate.isAfter(DateTime.now()))
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Future',
+                      style: TextStyle(fontSize: 12, color: AppTheme.accentColor),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -378,24 +502,61 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
     if (!showBankDetails) return const SizedBox();
 
-    return Column(
-      children: [
-        TextFormField(
-          controller: _bankNameController,
-          decoration: const InputDecoration(labelText: 'Bank Name', prefixIcon: Icon(Icons.account_balance)),
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.account_balance, color: AppTheme.primaryColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Bank Details',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _bankNameController,
+              decoration: const InputDecoration(
+                labelText: 'Bank Name',
+                prefixIcon: Icon(Icons.account_balance_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_paymentMode == 'Cheque' || _paymentMode == 'DD')
+              TextFormField(
+                controller: _chequeNumberController,
+                decoration: InputDecoration(
+                  labelText: '$_paymentMode Number',
+                  prefixIcon: const Icon(Icons.numbers),
+                ),
+              ),
+            if (_paymentMode == 'Bank Transfer' || _paymentMode == 'RTGS' || _paymentMode == 'NEFT')
+              TextFormField(
+                controller: _transactionIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Transaction ID',
+                  prefixIcon: Icon(Icons.receipt_long),
+                ),
+              ),
+          ],
         ),
-        const SizedBox(height: 12),
-        if (_paymentMode == 'Cheque' || _paymentMode == 'DD')
-          TextFormField(
-            controller: _chequeNumberController,
-            decoration: InputDecoration(labelText: '$_paymentMode Number', prefixIcon: const Icon(Icons.numbers)),
-          ),
-        if (_paymentMode == 'Bank Transfer' || _paymentMode == 'RTGS' || _paymentMode == 'NEFT')
-          TextFormField(
-            controller: _transactionIdController,
-            decoration: const InputDecoration(labelText: 'Transaction ID', prefixIcon: Icon(Icons.receipt)),
-          ),
-      ],
+      ),
     );
   }
 }

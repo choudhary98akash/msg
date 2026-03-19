@@ -17,6 +17,7 @@ class PaymentListScreen extends StatefulWidget {
 
 class _PaymentListScreenState extends State<PaymentListScreen> with SingleTickerProviderStateMixin {
   final DatabaseService _dbService = DatabaseService();
+  final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   
   List<PaymentModel> _allPayments = [];
@@ -25,6 +26,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
   Map<int, CustomerModel> _customers = {};
   bool _isLoading = true;
   String _filterType = 'all';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -47,10 +50,24 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
   }
 
   void _filterPayments() {
+    List<PaymentModel> baseList = _searchQuery.isEmpty
+        ? _allPayments
+        : _allPayments.where((p) {
+            final booking = _bookings[p.bookingId];
+            final customer = booking != null ? _customers[booking.customerId] : null;
+            final customerName = customer?.name.toLowerCase() ?? '';
+            final plotNumber = booking?.plotNumber.toLowerCase() ?? '';
+            final receiptNumber = (p.receiptNumber ?? '').toLowerCase();
+            final query = _searchQuery.toLowerCase();
+            return customerName.contains(query) ||
+                   plotNumber.contains(query) ||
+                   receiptNumber.contains(query);
+          }).toList();
+
     if (_filterType == 'all') {
-      _filteredPayments = _allPayments;
+      _filteredPayments = baseList;
     } else {
-      _filteredPayments = _allPayments.where((p) => p.paymentType.toLowerCase() == _filterType).toList();
+      _filteredPayments = baseList.where((p) => p.paymentType.toLowerCase() == _filterType).toList();
     }
   }
 
@@ -131,44 +148,117 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payments'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Token'),
-            Tab(text: 'Down Payment'),
-            Tab(text: 'EMI'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _filteredPayments.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.payment, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No payments found',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadPayments,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _filteredPayments.length,
-                    itemBuilder: (context, index) {
-                      final payment = _filteredPayments[index];
-                      return _buildPaymentCard(payment);
-                    },
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(130),
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    _filterPayments();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search by customer, plot or receipt...',
+                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                              _filterPayments();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
+              ),
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  indicatorColor: AppTheme.primaryColor,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  tabs: const [
+                    Tab(text: 'All'),
+                    Tab(text: 'Token'),
+                    Tab(text: 'Down Payment'),
+                    Tab(text: 'EMI'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_filteredPayments.length} ${_filteredPayments.length == 1 ? 'Payment' : 'Payments'}',
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (!_isLoading && _filteredPayments.isNotEmpty)
+                  Text(
+                    'Total: ${Formatters.formatCurrency(_filteredPayments.fold<double>(0, (sum, p) => sum + p.amount))}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredPayments.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _loadPayments,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 80),
+                          itemCount: _filteredPayments.length,
+                          itemBuilder: (context, index) {
+                            final payment = _filteredPayments[index];
+                            return _buildPaymentCard(payment);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
@@ -179,15 +269,72 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _searchQuery.isEmpty ? Icons.payment : Icons.search_off,
+                  size: 64,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _searchQuery.isEmpty ? 'No Payments Yet' : 'No Results Found',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _searchQuery.isEmpty
+                    ? 'Start by adding your first payment'
+                    : 'Try a different search term',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_searchQuery.isEmpty)
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddPaymentScreen()),
+                  ).then((_) => _loadPayments()),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Payment'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPaymentCard(PaymentModel payment) {
     final booking = _bookings[payment.bookingId];
     final customer = booking != null ? _customers[booking.customerId] : null;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Slidable(
         endActionPane: ActionPane(
           motion: const ScrollMotion(),
+          extentRatio: 0.25,
           children: [
             SlidableAction(
               onPressed: (_) => _deletePayment(payment),
@@ -195,67 +342,157 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
               foregroundColor: Colors.white,
               icon: Icons.delete,
               label: 'Delete',
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
             ),
           ],
         ),
         child: Card(
-          child: ListTile(
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: InkWell(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => AddPaymentScreen(payment: payment)),
             ).then((_) => _loadPayments()),
-            leading: CircleAvatar(
-              backgroundColor: _getPaymentColor(payment.paymentType).withOpacity(0.2),
-              child: Icon(
-                _getPaymentIcon(payment.paymentType),
-                color: _getPaymentColor(payment.paymentType),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _getPaymentIcon(payment.paymentType),
+                          color: AppTheme.primaryColor,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customer?.name ?? 'Unknown Customer',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.home, size: 14, color: Colors.grey.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Plot ${booking?.plotNumber ?? "N/A"}',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _getPaymentColor(payment.paymentType).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    Formatters.formatPaymentType(payment.paymentType),
+                                    style: TextStyle(
+                                      color: _getPaymentColor(payment.paymentType),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            Formatters.formatCurrency(payment.amount),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            Formatters.formatDate(payment.paymentDate),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPaymentDetail(
+                          Icons.receipt_long,
+                          'Receipt: ${payment.receiptNumber ?? "N/A"}',
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildPaymentDetail(
+                          Icons.account_balance,
+                          Formatters.formatPaymentMode(payment.paymentMode),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            title: Text(customer?.name ?? 'Unknown Customer'),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Plot ${booking?.plotNumber ?? "N/A"} - ${Formatters.formatPaymentType(payment.paymentType)}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                Text(
-                  payment.receiptNumber ?? 'No receipt',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  Formatters.formatCurrency(payment.amount),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
-                ),
-                Text(
-                  Formatters.formatDate(payment.paymentDate),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
-            ),
-            isThreeLine: true,
           ),
         ),
       ),
     );
   }
 
+  Widget _buildPaymentDetail(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey.shade600),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Color _getPaymentColor(String type) {
     switch (type.toLowerCase()) {
       case 'token':
-        return Colors.orange;
+        return const Color(0xFFFF9800);
       case 'down payment':
-        return Colors.blue;
+        return const Color(0xFF1976D2);
       case 'emi':
-        return Colors.green;
+        return const Color(0xFF388E3C);
       case 'final payment':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       default:
         return Colors.grey;
     }

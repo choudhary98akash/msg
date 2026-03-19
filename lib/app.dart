@@ -45,40 +45,54 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          if (index != 2) {
-            setState(() => _currentIndex = index);
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              if (index != 2) {
+                setState(() => _currentIndex = index);
+              }
+            },
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard, color: AppTheme.primaryColor),
+                label: 'Dashboard',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.people_outline),
+                selectedIcon: Icon(Icons.people, color: AppTheme.primaryColor),
+                label: 'Customers',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.add_home_outlined),
+                selectedIcon: Icon(Icons.add_home, color: AppTheme.primaryColor),
+                label: 'Booking',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.payment_outlined),
+                selectedIcon: Icon(Icons.payment, color: AppTheme.primaryColor),
+                label: 'Payments',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.description_outlined),
+                selectedIcon: Icon(Icons.description, color: AppTheme.primaryColor),
+                label: 'Quotations',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Customers',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_home_outlined),
-            selectedIcon: Icon(Icons.add_home),
-            label: 'Booking',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.payment_outlined),
-            selectedIcon: Icon(Icons.payment),
-            label: 'Payments',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.description_outlined),
-            selectedIcon: Icon(Icons.description),
-            label: 'Quotations',
-          ),
-        ],
+        ),
       ),
     );
   }

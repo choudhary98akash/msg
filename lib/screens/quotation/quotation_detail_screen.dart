@@ -143,6 +143,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                         ],
                         const SizedBox(height: 32),
                         _buildActionButtons(),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -155,9 +156,11 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     final isExpired = _quotation!.isExpired;
 
     return Card(
-      color: statusColor.withOpacity(0.1),
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
+      color: statusColor.withOpacity(0.05),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -168,32 +171,33 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                   isExpired ? 'EXPIRED' : _quotation!.status.toUpperCase(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 22,
                     color: statusColor,
                   ),
                 ),
+                const SizedBox(height: 4),
                 if (_quotation!.validUntil != null)
                   Text(
                     isExpired
                         ? 'Expired on ${Formatters.formatDate(_quotation!.validUntil!)}'
                         : 'Valid until ${Formatters.formatDate(_quotation!.validUntil!)}',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isExpired ? Colors.red : Colors.grey,
+                      fontSize: 13,
+                      color: isExpired ? Colors.red : Colors.grey.shade600,
                     ),
                   ),
               ],
             ),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
+                color: statusColor.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getStatusIcon(_quotation!.status),
                 color: statusColor,
-                size: 32,
+                size: 36,
               ),
             ),
           ],
@@ -204,21 +208,34 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   Widget _buildCustomerCard() {
     return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.person, color: AppTheme.primaryColor),
-                SizedBox(width: 8),
-                Text('Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.person, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Customer',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
-            const Divider(height: 16),
-            _infoRow('Name', _quotation!.customerName),
-            if (_quotation!.phone != null) _infoRow('Phone', _quotation!.phone!),
+            const Divider(height: 24),
+            _buildInfoRow('Name', _quotation!.customerName),
+            if (_quotation!.phone != null)
+              _buildInfoRow('Phone', _quotation!.phone!),
           ],
         ),
       ),
@@ -227,39 +244,51 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   Widget _buildPlotCard() {
     return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
-              children: [
-                Icon(Icons.home, color: AppTheme.primaryColor),
-                SizedBox(width: 8),
-                Text('Plot Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const Divider(height: 16),
             Row(
               children: [
-                Expanded(child: _infoRow('Plot Number', _quotation!.plotNumber)),
-                Expanded(child: _infoRow('Block', _quotation!.block ?? 'N/A')),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.home, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Plot Details',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                Expanded(child: _buildInfoRow('Plot Number', _quotation!.plotNumber)),
+                Expanded(child: _buildInfoRow('Block', _quotation!.block ?? 'N/A')),
               ],
             ),
             Row(
               children: [
-                Expanded(child: _infoRow('Sector', _quotation!.sector ?? 'N/A')),
-                Expanded(child: _infoRow('Location', _quotation!.location ?? 'N/A')),
+                Expanded(child: _buildInfoRow('Sector', _quotation!.sector ?? 'N/A')),
+                Expanded(child: _buildInfoRow('Location', _quotation!.location ?? 'N/A')),
               ],
             ),
-            const Divider(height: 16),
+            const Divider(height: 24),
             Row(
               children: [
-                Expanded(child: _infoRow('Length', '${_quotation!.length} ft')),
-                Expanded(child: _infoRow('Breadth', '${_quotation!.breadth} ft')),
+                Expanded(child: _buildInfoRow('Length', '${_quotation!.length} ft')),
+                Expanded(child: _buildInfoRow('Breadth', '${_quotation!.breadth} ft')),
               ],
             ),
-            _infoRow('Total Area', Formatters.formatArea(_quotation!.totalArea)),
+            _buildInfoRow('Total Area', Formatters.formatArea(_quotation!.totalArea)),
           ],
         ),
       ),
@@ -270,33 +299,45 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     final downPayment = _quotation!.totalPrice * (_quotation!.downPaymentPercent / 100);
 
     return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
-                SizedBox(width: 8),
-                Text('Pricing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Pricing',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
-            const Divider(height: 16),
-            _infoRow('Rate per Gaj', Formatters.formatCurrency(_quotation!.ratePerGaj)),
-            _infoRow('Total Price', Formatters.formatCurrency(_quotation!.totalPrice)),
-            const Divider(height: 16),
-            _infoRow('Down Payment', '${_quotation!.downPaymentPercent.toStringAsFixed(0)}% (${Formatters.formatCurrency(downPayment)})'),
-            _infoRow('Loan Amount', Formatters.formatCurrency(_quotation!.totalPrice - downPayment)),
-            _infoRow('EMI', '${Formatters.formatCurrency(_quotation!.emiAmount)} x ${_quotation!.emiMonths} months'),
-            const Divider(height: 16),
+            const Divider(height: 24),
+            _buildInfoRow('Rate per Gaj', Formatters.formatCurrency(_quotation!.ratePerGaj)),
+            _buildInfoRow('Total Price', Formatters.formatCurrency(_quotation!.totalPrice)),
+            const Divider(height: 24),
+            _buildInfoRow('Down Payment', '${_quotation!.downPaymentPercent.toStringAsFixed(0)}% (${Formatters.formatCurrency(downPayment)})'),
+            _buildInfoRow('Loan Amount', Formatters.formatCurrency(_quotation!.totalPrice - downPayment)),
+            _buildInfoRow('EMI', '${Formatters.formatCurrency(_quotation!.emiAmount)} x ${_quotation!.emiMonths} months'),
+            const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total EMI Amount:', style: TextStyle(fontWeight: FontWeight.bold)),
                 Text(
                   Formatters.formatCurrency(_quotation!.emiAmount * _quotation!.emiMonths),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
                 ),
               ],
             ),
@@ -308,47 +349,77 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   Widget _buildPaymentScheduleCard() {
     return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
-              children: [
-                Icon(Icons.schedule, color: AppTheme.primaryColor),
-                SizedBox(width: 8),
-                Text('Payment Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const Divider(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Immediate Payment:'),
-                Text(
-                  Formatters.formatCurrency(_quotation!.downPaymentAmount),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.schedule, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Payment Summary',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Monthly EMI:'),
-                Text(
-                  Formatters.formatCurrency(_quotation!.emiAmount),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
-                ),
-              ],
+            const Divider(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF388E3C).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Immediate Payment', style: TextStyle(fontSize: 12)),
+                      Text('Down Payment', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                    ],
+                  ),
+                  Text(
+                    Formatters.formatCurrency(_quotation!.downPaymentAmount),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF388E3C)),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('EMI Duration:'),
-                Text('${_quotation!.emiMonths} months'),
-              ],
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1976D2).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Monthly EMI', style: TextStyle(fontSize: 12)),
+                      Text('${_quotation!.emiMonths} months', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                    ],
+                  ),
+                  Text(
+                    Formatters.formatCurrency(_quotation!.emiAmount),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1976D2)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -358,19 +429,31 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   Widget _buildRemarksCard() {
     return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.note, color: AppTheme.primaryColor),
-                SizedBox(width: 8),
-                Text('Remarks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.note, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Remarks',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
-            const Divider(height: 16),
+            const Divider(height: 24),
             Text(_quotation!.remarks ?? ''),
           ],
         ),
@@ -390,7 +473,10 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             onPressed: () => _updateStatus('rejected'),
             icon: const Icon(Icons.close),
             label: const Text('Reject'),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -399,19 +485,22 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             onPressed: () => _updateStatus('accepted'),
             icon: const Icon(Icons.check),
             label: const Text('Accept'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: Colors.grey.shade600)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
@@ -421,12 +510,12 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'accepted':
-        return Colors.green;
+        return const Color(0xFF388E3C);
       case 'rejected':
         return Colors.red;
       case 'pending':
       default:
-        return Colors.orange;
+        return const Color(0xFFFF9800);
     }
   }
 

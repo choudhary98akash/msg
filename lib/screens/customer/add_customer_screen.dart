@@ -5,6 +5,7 @@ import '../../models/nominee_model.dart';
 import '../../models/id_proof_model.dart';
 import '../../utils/validators.dart';
 import '../../config/constants.dart';
+import '../../config/theme.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   const AddCustomerScreen({super.key});
@@ -147,7 +148,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Customer')),
+      appBar: AppBar(
+        title: const Text('Add Customer'),
+      ),
       body: Form(
         key: _formKey,
         child: Stepper(
@@ -164,14 +167,14 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           },
           controlsBuilder: (context, details) {
             return Padding(
-              padding: const EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.only(top: 24),
               child: Row(
                 children: [
                   ElevatedButton(
                     onPressed: _isLoading ? null : details.onStepContinue,
                     child: _isLoading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(_currentStep == 2 ? 'Save' : 'Continue'),
+                        : Text(_currentStep == 2 ? 'Save Customer' : 'Continue'),
                   ),
                   if (_currentStep > 0) ...[
                     const SizedBox(width: 12),
@@ -183,6 +186,20 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                 ],
               ),
             );
+          },
+          stepIconBuilder: (stepIndex, stepState) {
+            if (stepState == StepState.complete) {
+              return Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 18),
+              );
+            }
+            return null;
           },
           steps: [
             Step(
@@ -212,49 +229,83 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   Widget _buildBasicInfoStep() {
     return Column(
       children: [
+        _buildSectionHeader(Icons.person, 'Personal Information'),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _nameController,
-          decoration: const InputDecoration(labelText: 'Name *', prefixIcon: Icon(Icons.person)),
+          decoration: const InputDecoration(
+            labelText: 'Full Name *',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
           validator: Validators.validateName,
           textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _phoneController,
-          decoration: const InputDecoration(labelText: 'Phone *', prefixIcon: Icon(Icons.phone)),
+          decoration: const InputDecoration(
+            labelText: 'Phone Number *',
+            prefixIcon: Icon(Icons.phone_outlined),
+          ),
           keyboardType: TextInputType.phone,
           validator: Validators.validatePhone,
           onChanged: (_) => _checkPhone(),
         ),
         if (_phoneExists)
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text('Phone number already exists', style: TextStyle(color: Colors.red, fontSize: 12)),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, size: 16, color: Colors.red.shade700),
+                const SizedBox(width: 4),
+                Text(
+                  'Phone number already exists',
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                ),
+              ],
+            ),
           ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _emailController,
-          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+          decoration: const InputDecoration(
+            labelText: 'Email Address',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
           keyboardType: TextInputType.emailAddress,
           validator: Validators.validateEmail,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _addressController,
-          decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on)),
+          decoration: const InputDecoration(
+            labelText: 'Address',
+            prefixIcon: Icon(Icons.location_on_outlined),
+          ),
           maxLines: 2,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _occupationController,
-          decoration: const InputDecoration(labelText: 'Occupation', prefixIcon: Icon(Icons.work)),
+          decoration: const InputDecoration(
+            labelText: 'Occupation',
+            prefixIcon: Icon(Icons.work_outline),
+          ),
         ),
         const SizedBox(height: 16),
         InkWell(
           onTap: _selectDob,
           child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Date of Birth', prefixIcon: Icon(Icons.cake)),
-            child: Text(_dob != null ? '${_dob!.day}/${_dob!.month}/${_dob!.year}' : 'Select date'),
+            decoration: const InputDecoration(
+              labelText: 'Date of Birth',
+              prefixIcon: Icon(Icons.cake_outlined),
+            ),
+            child: Text(
+              _dob != null ? '${_dob!.day}/${_dob!.month}/${_dob!.year}' : 'Select date',
+              style: TextStyle(
+                color: _dob != null ? AppTheme.textPrimaryColor : Colors.grey,
+              ),
+            ),
           ),
         ),
       ],
@@ -264,30 +315,48 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   Widget _buildKycStep() {
     return Column(
       children: [
+        _buildSectionHeader(Icons.badge, 'Identity Proof'),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _aadharController,
-          decoration: const InputDecoration(labelText: 'Aadhar Number', prefixIcon: Icon(Icons.badge)),
+          decoration: const InputDecoration(
+            labelText: 'Aadhar Number',
+            prefixIcon: Icon(Icons.badge_outlined),
+          ),
           keyboardType: TextInputType.number,
           validator: Validators.validateAadhar,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _panController,
-          decoration: const InputDecoration(labelText: 'PAN Number', prefixIcon: Icon(Icons.credit_card)),
+          decoration: const InputDecoration(
+            labelText: 'PAN Number',
+            prefixIcon: Icon(Icons.credit_card_outlined),
+          ),
           textCapitalization: TextCapitalization.characters,
           validator: Validators.validatePan,
         ),
+        const SizedBox(height: 24),
+        _buildSectionHeader(Icons.emergency, 'Emergency Contact'),
         const SizedBox(height: 16),
         TextFormField(
           controller: _relationNameController,
-          decoration: const InputDecoration(labelText: 'Emergency Contact Name', prefixIcon: Icon(Icons.emergency)),
+          decoration: const InputDecoration(
+            labelText: 'Emergency Contact Name',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
           textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _relationTypeController.text.isEmpty ? null : _relationTypeController.text,
-          decoration: const InputDecoration(labelText: 'Relation Type', prefixIcon: Icon(Icons.family_restroom)),
-          items: AppConstants.relationTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+          decoration: const InputDecoration(
+            labelText: 'Relation Type',
+            prefixIcon: Icon(Icons.family_restroom),
+          ),
+          items: AppConstants.relationTypes
+              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+              .toList(),
           onChanged: (value) => setState(() => _relationTypeController.text = value ?? ''),
         ),
       ],
@@ -298,25 +367,64 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Nominee Details (Optional)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        _buildSectionHeader(Icons.people, 'Nominee Details'),
+        const SizedBox(height: 8),
+        Text(
+          'Optional - Add a nominee for this customer',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _nomineeNameController,
-          decoration: const InputDecoration(labelText: 'Nominee Name', prefixIcon: Icon(Icons.person)),
+          decoration: const InputDecoration(
+            labelText: 'Nominee Name',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
           textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _nomineePhoneController,
-          decoration: const InputDecoration(labelText: 'Nominee Phone', prefixIcon: Icon(Icons.phone)),
+          decoration: const InputDecoration(
+            labelText: 'Nominee Phone',
+            prefixIcon: Icon(Icons.phone_outlined),
+          ),
           keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _nomineeRelationController.text.isEmpty ? null : _nomineeRelationController.text,
-          decoration: const InputDecoration(labelText: 'Relation', prefixIcon: Icon(Icons.family_restroom)),
-          items: AppConstants.relationTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+          decoration: const InputDecoration(
+            labelText: 'Relation',
+            prefixIcon: Icon(Icons.family_restroom),
+          ),
+          items: AppConstants.relationTypes
+              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+              .toList(),
           onChanged: (value) => setState(() => _nomineeRelationController.text = value ?? ''),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );

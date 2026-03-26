@@ -182,68 +182,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 400;
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: isWide ? 1.2 : 1.0,
-              children: [
-                _buildStatCard(
-                  'Customers',
-                  _stats['customers']?.toString() ?? '0',
-                  'Total registered',
-                  Icons.people,
-                  AppTheme.primaryColor,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const CustomerListScreen()),
-                  ).then((_) => _loadData()),
-                ),
-                _buildStatCard(
-                  'Active Bookings',
-                  _stats['bookings']?.toString() ?? '0',
-                  'Plot bookings',
-                  Icons.home_work,
-                  AppTheme.secondaryColor,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const BookingListScreen()),
-                  ).then((_) => _loadData()),
-                ),
-                _buildStatCard(
-                  'Payments',
-                  _stats['payments']?.toString() ?? '0',
-                  'Total records',
-                  Icons.payment,
-                  const Color(0xFF1976D2),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const PaymentListScreen()),
-                  ).then((_) => _loadData()),
-                ),
-                _buildStatCard(
-                  'Quotations',
-                  _stats['quotations']?.toString() ?? '0',
-                  'Pending quotes',
-                  Icons.description,
-                  const Color(0xFF7B1FA2),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const QuotationListScreen()),
-                  ).then((_) => _loadData()),
-                ),
-              ],
-            );
-          },
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: MediaQuery.of(context).size.width > 360 ? 1.4 : 1.2,
+          children: [
+            _buildStatCard(
+              'Customers',
+              _stats['customers']?.toString() ?? '0',
+              'Total registered',
+              Icons.people,
+              AppTheme.primaryColor,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CustomerListScreen()),
+              ).then((_) => _loadData()),
+            ),
+            _buildStatCard(
+              'Active Bookings',
+              _stats['bookings']?.toString() ?? '0',
+              'Plot bookings',
+              Icons.home_work,
+              AppTheme.secondaryColor,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BookingListScreen()),
+              ).then((_) => _loadData()),
+            ),
+            _buildStatCard(
+              'Payments',
+              _stats['payments']?.toString() ?? '0',
+              'Total records',
+              Icons.payment,
+              const Color(0xFF1976D2),
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PaymentListScreen()),
+              ).then((_) => _loadData()),
+            ),
+            _buildStatCard(
+              'Quotations',
+              _stats['quotations']?.toString() ?? '0',
+              'Pending quotes',
+              Icons.description,
+              const Color(0xFF7B1FA2),
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QuotationListScreen()),
+              ).then((_) => _loadData()),
+            ),
+          ],
         ),
       ],
     );
@@ -258,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -266,12 +257,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, color: color, size: 24),
+                    child: Icon(icon, color: color, size: 20),
                   ),
                   Icon(Icons.arrow_forward_ios,
                       color: Colors.grey.shade400, size: 14),
@@ -281,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -298,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: Colors.grey.shade600,
                 ),
               ),

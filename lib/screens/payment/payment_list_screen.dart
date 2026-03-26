@@ -15,11 +15,12 @@ class PaymentListScreen extends StatefulWidget {
   State<PaymentListScreen> createState() => _PaymentListScreenState();
 }
 
-class _PaymentListScreenState extends State<PaymentListScreen> with SingleTickerProviderStateMixin {
+class _PaymentListScreenState extends State<PaymentListScreen>
+    with SingleTickerProviderStateMixin {
   final DatabaseService _dbService = DatabaseService();
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
-  
+
   List<PaymentModel> _allPayments = [];
   List<PaymentModel> _filteredPayments = [];
   Map<int, BookingModel> _bookings = {};
@@ -54,20 +55,23 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
         ? _allPayments
         : _allPayments.where((p) {
             final booking = _bookings[p.bookingId];
-            final customer = booking != null ? _customers[booking.customerId] : null;
+            final customer =
+                booking != null ? _customers[booking.customerId] : null;
             final customerName = customer?.name.toLowerCase() ?? '';
             final plotNumber = booking?.plotNumber.toLowerCase() ?? '';
             final receiptNumber = (p.receiptNumber ?? '').toLowerCase();
             final query = _searchQuery.toLowerCase();
             return customerName.contains(query) ||
-                   plotNumber.contains(query) ||
-                   receiptNumber.contains(query);
+                plotNumber.contains(query) ||
+                receiptNumber.contains(query);
           }).toList();
 
     if (_filterType == 'all') {
       _filteredPayments = baseList;
     } else {
-      _filteredPayments = baseList.where((p) => p.paymentType.toLowerCase() == _filterType).toList();
+      _filteredPayments = baseList
+          .where((p) => p.paymentType.toLowerCase() == _filterType)
+          .toList();
     }
   }
 
@@ -117,7 +121,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Payment'),
-        content: const Text('Are you sure you want to delete this payment? Receipt will be lost.'),
+        content: const Text(
+            'Are you sure you want to delete this payment? Receipt will be lost.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -163,7 +168,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
                   },
                   decoration: InputDecoration(
                     hintText: 'Search by customer, plot or receipt...',
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+                    prefixIcon:
+                        const Icon(Icons.search, color: AppTheme.primaryColor),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
@@ -180,7 +186,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                   ),
                 ),
               ),
@@ -190,7 +197,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
                   controller: _tabController,
                   labelColor: AppTheme.primaryColor,
                   unselectedLabelColor: Colors.grey,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
                   indicatorColor: AppTheme.primaryColor,
                   indicatorWeight: 3,
                   indicatorSize: TabBarIndicatorSize.label,
@@ -214,7 +222,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -342,7 +351,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
               foregroundColor: Colors.white,
               icon: Icons.delete,
               label: 'Delete',
-              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.horizontal(right: Radius.circular(12)),
             ),
           ],
         ),
@@ -352,7 +362,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
           child: InkWell(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => AddPaymentScreen(payment: payment)),
+              MaterialPageRoute(
+                  builder: (_) => AddPaymentScreen(payment: payment)),
             ).then((_) => _loadPayments()),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
@@ -384,27 +395,45 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
                               children: [
-                                Icon(Icons.home, size: 14, color: Colors.grey.shade600),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Plot ${booking?.plotNumber ?? "N/A"}',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.home,
+                                        size: 14, color: Colors.grey.shade600),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        'Plot ${booking?.plotNumber ?? "N/A"}',
+                                        style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: _getPaymentColor(payment.paymentType).withOpacity(0.1),
+                                    color: _getPaymentColor(payment.paymentType)
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
-                                    Formatters.formatPaymentType(payment.paymentType),
+                                    Formatters.formatPaymentType(
+                                        payment.paymentType),
                                     style: TextStyle(
-                                      color: _getPaymentColor(payment.paymentType),
+                                      color:
+                                          _getPaymentColor(payment.paymentType),
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -415,26 +444,29 @@ class _PaymentListScreenState extends State<PaymentListScreen> with SingleTicker
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            Formatters.formatCurrency(payment.amount),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: AppTheme.primaryColor,
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              Formatters.formatCurrency(payment.amount),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: AppTheme.primaryColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            Formatters.formatDate(payment.paymentDate),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                            const SizedBox(height: 4),
+                            Text(
+                              Formatters.formatDate(payment.paymentDate),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

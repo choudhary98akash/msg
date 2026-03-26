@@ -345,8 +345,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           items: _bookings
               .map((b) => DropdownMenuItem(
                     value: b,
-                    child:
-                        Text('Plot ${b.plotNumber} - ${b.location ?? "N/A"}'),
+                    child: Text(
+                      'Plot ${b.plotNumber} - ${b.location ?? "N/A"}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ))
               .toList(),
           onChanged: (value) {
@@ -391,6 +393,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                         _customer!.name,
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         _customer!.phone ?? 'No phone',
@@ -426,8 +430,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('EMI Amount:'),
-                Text(
-                    '${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths} months'),
+                Flexible(
+                  child: Text(
+                    '${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths} months',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ],

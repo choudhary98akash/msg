@@ -182,59 +182,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
-          children: [
-            _buildStatCard(
-              'Customers',
-              _stats['customers']?.toString() ?? '0',
-              'Total registered',
-              Icons.people,
-              AppTheme.primaryColor,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-              ).then((_) => _loadData()),
-            ),
-            _buildStatCard(
-              'Active Bookings',
-              _stats['bookings']?.toString() ?? '0',
-              'Plot bookings',
-              Icons.home_work,
-              AppTheme.secondaryColor,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BookingListScreen()),
-              ).then((_) => _loadData()),
-            ),
-            _buildStatCard(
-              'Payments',
-              _stats['payments']?.toString() ?? '0',
-              'Total records',
-              Icons.payment,
-              const Color(0xFF1976D2),
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PaymentListScreen()),
-              ).then((_) => _loadData()),
-            ),
-            _buildStatCard(
-              'Quotations',
-              _stats['quotations']?.toString() ?? '0',
-              'Pending quotes',
-              Icons.description,
-              const Color(0xFF7B1FA2),
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QuotationListScreen()),
-              ).then((_) => _loadData()),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 400;
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: isWide ? 1.2 : 1.0,
+              children: [
+                _buildStatCard(
+                  'Customers',
+                  _stats['customers']?.toString() ?? '0',
+                  'Total registered',
+                  Icons.people,
+                  AppTheme.primaryColor,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CustomerListScreen()),
+                  ).then((_) => _loadData()),
+                ),
+                _buildStatCard(
+                  'Active Bookings',
+                  _stats['bookings']?.toString() ?? '0',
+                  'Plot bookings',
+                  Icons.home_work,
+                  AppTheme.secondaryColor,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const BookingListScreen()),
+                  ).then((_) => _loadData()),
+                ),
+                _buildStatCard(
+                  'Payments',
+                  _stats['payments']?.toString() ?? '0',
+                  'Total records',
+                  Icons.payment,
+                  const Color(0xFF1976D2),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PaymentListScreen()),
+                  ).then((_) => _loadData()),
+                ),
+                _buildStatCard(
+                  'Quotations',
+                  _stats['quotations']?.toString() ?? '0',
+                  'Pending quotes',
+                  Icons.description,
+                  const Color(0xFF7B1FA2),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const QuotationListScreen()),
+                  ).then((_) => _loadData()),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -268,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.grey.shade400, size: 14),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 value,
                 style: TextStyle(
@@ -276,6 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
@@ -669,6 +679,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: Text(
         payment['customer_name'] ?? 'Unknown',
         style: const TextStyle(fontWeight: FontWeight.w600),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         'Plot ${payment['plot_number']} - ${Formatters.formatPaymentType(payment['payment_type'])}',
@@ -678,9 +690,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            Formatters.formatCurrency((payment['amount'] as num).toDouble()),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Flexible(
+            child: Text(
+              Formatters.formatCurrency((payment['amount'] as num).toDouble()),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           Text(
             Formatters.formatDate(DateTime.parse(payment['payment_date'])),

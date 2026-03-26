@@ -3,7 +3,6 @@ import '../../services/database_service.dart';
 import '../../models/payment_model.dart';
 import '../../models/booking_model.dart';
 import '../../models/customer_model.dart';
-import '../../utils/validators.dart';
 import '../../utils/formatters.dart';
 import '../../config/constants.dart';
 import '../../config/theme.dart';
@@ -38,6 +37,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   String _paymentMode = 'Cash';
   DateTime _paymentDate = DateTime.now();
 
+  bool get _isViewMode => widget.payment != null;
+
   @override
   void initState() {
     super.initState();
@@ -60,13 +61,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
   Future<void> _loadBookings() async {
     final bookings = await _dbService.getAllBookings();
-    final activeBookings = bookings.where((b) => b.status == 'active').toList();
-    setState(() => _bookings = activeBookings);
+    setState(() => _bookings = bookings);
 
     if (widget.payment != null) {
       final booking = await _dbService.getBooking(widget.payment!.bookingId);
       if (booking != null) {
-        _selectBooking(booking);
+        await _selectBooking(booking);
       }
     }
   }
@@ -172,6 +172,60 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     }
   }
 
+  Future<void> _deletePayment() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Payment'),
+        content: const Text(
+            'Are you sure you want to delete this payment? Receipt will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _dbService.deletePayment(widget.payment!.id!);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment deleted successfully')),
+        );
+      }
+    }
+  }
+
+  Future<void> _printReceipt() async {
+    if (_customer == null || _selectedBooking == null) return;
+
+    await _receiptPdfService.printReceipt(
+      payment: widget.payment!,
+      booking: _selectedBooking!,
+      customer: _customer!,
+      receiptNumber: widget.payment!.receiptNumber ?? '',
+    );
+  }
+
+  Future<void> _shareReceipt() async {
+    if (_customer == null || _selectedBooking == null) return;
+
+    await _receiptPdfService.shareReceipt(
+      payment: widget.payment!,
+      booking: _selectedBooking!,
+      customer: _customer!,
+      receiptNumber: widget.payment!.receiptNumber ?? '',
+    );
+  }
+
   Future<void> _showReceiptDialog(PaymentModel payment) async {
     final action = await showDialog<String>(
       context: context,
@@ -221,20 +275,19 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
     if (action == 'print' || action == 'share') {
       if (_customer != null && _selectedBooking != null) {
-        final receiptNumber = await _dbService.generateReceiptNumber();
         if (action == 'print') {
           await _receiptPdfService.printReceipt(
             payment: payment,
             booking: _selectedBooking!,
             customer: _customer!,
-            receiptNumber: receiptNumber,
+            receiptNumber: payment.receiptNumber ?? '',
           );
         } else {
           await _receiptPdfService.shareReceipt(
             payment: payment,
             booking: _selectedBooking!,
             customer: _customer!,
-            receiptNumber: receiptNumber,
+            receiptNumber: payment.receiptNumber ?? '',
           );
         }
       }
@@ -253,9 +306,44 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isViewMode) {
+      return _buildViewMode();
+    }
+    return _buildAddMode();
+  }
+
+  Widget _buildViewMode() {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.payment != null ? 'Edit Payment' : 'Add Payment'),
+        title: const Text('Payment Details'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(Icons.home_work, 'Booking Info'),
+                  const SizedBox(height: 12),
+                  _buildViewBookingCard(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(Icons.payment, 'Payment Details'),
+                  const SizedBox(height: 12),
+                  _buildPaymentView(),
+                  const SizedBox(height: 24),
+                  _buildActionButtons(),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildAddMode() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Add Payment'),
       ),
       body: Form(
         key: _formKey,
@@ -305,6 +393,260 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildViewBookingCard() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.home_work,
+                      color: AppTheme.primaryColor, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Plot ${_selectedBooking?.plotNumber ?? "N/A"}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        _selectedBooking?.location ?? 'N/A',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                  radius: 20,
+                  child: Text(
+                    _customer?.name.isNotEmpty == true
+                        ? _customer!.name.substring(0, 1).toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _customer?.name ?? 'Unknown',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        _customer?.phone ?? 'No phone',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildDetailRow(
+              'Payment Type',
+              Formatters.formatPaymentType(_paymentType),
+              Icons.category,
+            ),
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Amount',
+              Formatters.formatCurrency(
+                  double.tryParse(_amountController.text) ?? 0),
+              Icons.currency_rupee,
+              valueStyle: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Date',
+              Formatters.formatDate(_paymentDate),
+              Icons.calendar_today,
+            ),
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Payment Mode',
+              Formatters.formatPaymentMode(_paymentMode),
+              Icons.payment,
+            ),
+            if (_bankNameController.text.isNotEmpty) ...[
+              const Divider(height: 20),
+              _buildDetailRow(
+                'Bank',
+                _bankNameController.text,
+                Icons.account_balance,
+              ),
+            ],
+            if (_transactionIdController.text.isNotEmpty) ...[
+              const Divider(height: 20),
+              _buildDetailRow(
+                'Transaction ID',
+                _transactionIdController.text,
+                Icons.receipt,
+              ),
+            ],
+            if (_chequeNumberController.text.isNotEmpty) ...[
+              const Divider(height: 20),
+              _buildDetailRow(
+                'Cheque Number',
+                _chequeNumberController.text,
+                Icons.confirmation_number,
+              ),
+            ],
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Receipt No.',
+              widget.payment?.receiptNumber ?? 'N/A',
+              Icons.receipt_long,
+            ),
+            if (_remarksController.text.isNotEmpty) ...[
+              const Divider(height: 20),
+              _buildDetailRow(
+                'Remarks',
+                _remarksController.text,
+                Icons.note,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon,
+      {TextStyle? valueStyle}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: valueStyle ?? const TextStyle(fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _printReceipt,
+                icon: const Icon(Icons.print),
+                label: const Text('Print'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _shareReceipt,
+                icon: const Icon(Icons.share),
+                label: const Text('Share'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _deletePayment,
+            icon: const Icon(Icons.delete),
+            label: const Text('Delete Payment'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -474,7 +816,6 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 prefixIcon: Icon(Icons.currency_rupee),
               ),
               keyboardType: TextInputType.number,
-              validator: Validators.validateAmount,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(

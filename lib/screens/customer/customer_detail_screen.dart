@@ -40,7 +40,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       final customer = await _dbService.getCustomer(widget.customer.id!);
       final nominees = await _dbService.getNominees(widget.customer.id!);
       final idProofs = await _dbService.getIdProofs(widget.customer.id!);
-      final bookings = await _dbService.getBookingsForCustomer(widget.customer.id!);
+      final bookings =
+          await _dbService.getBookingsForCustomer(widget.customer.id!);
 
       final paymentsByBooking = <int, List<PaymentModel>>{};
       for (final booking in bookings) {
@@ -76,12 +77,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EditCustomerScreen(customer: _customer!),
-              ),
-            ).then((_) => _loadData()),
+            onPressed: _customer == null
+                ? null
+                : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EditCustomerScreen(customer: _customer!),
+                      ),
+                    ).then((_) => _loadData()),
           ),
         ],
       ),
@@ -122,8 +126,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               radius: 50,
               backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
               child: Text(
-                _customer?.name.isNotEmpty == true 
-                    ? _customer!.name.substring(0, 1).toUpperCase() 
+                _customer?.name.isNotEmpty == true
+                    ? _customer!.name.substring(0, 1).toUpperCase()
                     : '?',
                 style: const TextStyle(
                   color: AppTheme.primaryColor,
@@ -200,15 +204,16 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       children: [
         _buildInfoRow(Icons.phone, 'Phone', _customer?.phone ?? 'Not provided'),
         _buildInfoRow(Icons.email, 'Email', _customer?.email ?? 'Not provided'),
-        _buildInfoRow(Icons.location_on, 'Address', _customer?.address ?? 'Not provided'),
+        _buildInfoRow(
+            Icons.location_on, 'Address', _customer?.address ?? 'Not provided'),
         if (_customer?.dob != null)
-          _buildInfoRow(Icons.cake, 'Date of Birth', Formatters.formatDate(_customer!.dob!)),
+          _buildInfoRow(Icons.cake, 'Date of Birth',
+              Formatters.formatDate(_customer!.dob!)),
         if (_customer?.relationName != null)
           _buildInfoRow(
-            Icons.family_restroom, 
-            _customer?.relationType ?? 'Emergency Contact', 
-            _customer!.relationName!
-          ),
+              Icons.family_restroom,
+              _customer?.relationType ?? 'Emergency Contact',
+              _customer!.relationName!),
       ],
     );
   }
@@ -282,7 +287,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -304,7 +310,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Column(
                     children: [
-                      Icon(Icons.person_off, size: 40, color: Colors.grey.shade400),
+                      Icon(Icons.person_off,
+                          size: 40, color: Colors.grey.shade400),
                       const SizedBox(height: 12),
                       Text(
                         'No nominees added',
@@ -316,32 +323,36 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               )
             else
               ...(_nominees.map((nominee) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppTheme.secondaryColor.withOpacity(0.1),
-                      child: const Icon(Icons.person, color: AppTheme.secondaryColor, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            nominee.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor:
+                              AppTheme.secondaryColor.withOpacity(0.1),
+                          child: const Icon(Icons.person,
+                              color: AppTheme.secondaryColor, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nominee.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                '${nominee.relation ?? "Relation"} - ${nominee.phone ?? "No phone"}',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${nominee.relation ?? "Relation"} - ${nominee.phone ?? "No phone"}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ))),
+                  ))),
           ],
         ),
       ),
@@ -377,7 +388,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -399,7 +411,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Column(
                     children: [
-                      Icon(Icons.card_membership, size: 40, color: Colors.grey.shade400),
+                      Icon(Icons.card_membership,
+                          size: 40, color: Colors.grey.shade400),
                       const SizedBox(height: 12),
                       Text(
                         'No ID proofs added',
@@ -411,32 +424,36 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               )
             else
               ...(_idProofs.map((proof) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                      child: const Icon(Icons.credit_card, color: AppTheme.primaryColor, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            proof.type,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor:
+                              AppTheme.primaryColor.withOpacity(0.1),
+                          child: const Icon(Icons.credit_card,
+                              color: AppTheme.primaryColor, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                proof.type,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                proof.number,
+                                style: TextStyle(
+                                    fontSize: 13, color: Colors.grey.shade600),
+                              ),
+                            ],
                           ),
-                          Text(
-                            proof.number,
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ))),
+                  ))),
           ],
         ),
       ),
@@ -460,7 +477,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.home_work, color: AppTheme.primaryColor),
+                  child:
+                      const Icon(Icons.home_work, color: AppTheme.primaryColor),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -472,7 +490,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -494,7 +513,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Column(
                     children: [
-                      Icon(Icons.home_outlined, size: 40, color: Colors.grey.shade400),
+                      Icon(Icons.home_outlined,
+                          size: 40, color: Colors.grey.shade400),
                       const SizedBox(height: 12),
                       Text(
                         'No bookings yet',
@@ -545,17 +565,20 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   children: [
                     Text(
                       'Plot ${booking.plotNumber}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     Text(
                       '${booking.location ?? ""} ${booking.block != null ? "Block ${booking.block}" : ""}',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: booking.status == 'active'
                       ? AppTheme.secondaryColor.withOpacity(0.1)
@@ -565,7 +588,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 child: Text(
                   Formatters.formatStatus(booking.status),
                   style: TextStyle(
-                    color: booking.status == 'active' ? AppTheme.secondaryColor : Colors.grey,
+                    color: booking.status == 'active'
+                        ? AppTheme.secondaryColor
+                        : Colors.grey,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -577,13 +602,16 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildBookingDetail('Area', Formatters.formatArea(booking.totalArea)),
+                child: _buildBookingDetail(
+                    'Area', Formatters.formatArea(booking.totalArea)),
               ),
               Expanded(
-                child: _buildBookingDetail('Rate', '${Formatters.formatCurrency(booking.ratePerGaj)}/sq.ft'),
+                child: _buildBookingDetail('Rate',
+                    '${Formatters.formatCurrency(booking.ratePerGaj)}/sq.ft'),
               ),
               Expanded(
-                child: _buildBookingDetail('Total', Formatters.formatCurrency(booking.totalPrice)),
+                child: _buildBookingDetail(
+                    'Total', Formatters.formatCurrency(booking.totalPrice)),
               ),
             ],
           ),
@@ -599,7 +627,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               value: progress,
               minHeight: 8,
               backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
             ),
           ),
           const SizedBox(height: 8),

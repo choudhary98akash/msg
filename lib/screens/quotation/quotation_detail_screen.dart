@@ -17,7 +17,7 @@ class QuotationDetailScreen extends StatefulWidget {
 class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   final DatabaseService _dbService = DatabaseService();
   final QuotationPdfService _pdfService = QuotationPdfService();
-  
+
   QuotationModel? _quotation;
   bool _isLoading = true;
 
@@ -33,10 +33,17 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     try {
       final quotation = await _dbService.getQuotation(widget.quotation.id!);
       if (mounted) {
-        setState(() {
-          _quotation = quotation;
-          _isLoading = false;
-        });
+        if (quotation == null) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Quotation not found')),
+          );
+        } else {
+          setState(() {
+            _quotation = quotation;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -75,9 +82,11 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     final quotationNumber = await _dbService.generateQuotationNumber();
 
     if (print) {
-      await _pdfService.printQuotation(quotation: _quotation!, quotationNumber: quotationNumber);
+      await _pdfService.printQuotation(
+          quotation: _quotation!, quotationNumber: quotationNumber);
     } else {
-      await _pdfService.shareQuotation(quotation: _quotation!, quotationNumber: quotationNumber);
+      await _pdfService.shareQuotation(
+          quotation: _quotation!, quotationNumber: quotationNumber);
     }
   }
 
@@ -105,12 +114,26 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'print', child: ListTile(leading: Icon(Icons.print), title: Text('Print'))),
-              const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Share'))),
+              const PopupMenuItem(
+                  value: 'print',
+                  child: ListTile(
+                      leading: Icon(Icons.print), title: Text('Print'))),
+              const PopupMenuItem(
+                  value: 'share',
+                  child: ListTile(
+                      leading: Icon(Icons.share), title: Text('Share'))),
               const PopupMenuDivider(),
               if (_quotation?.status == 'pending') ...[
-                const PopupMenuItem(value: 'accept', child: ListTile(leading: Icon(Icons.check, color: Colors.green), title: Text('Mark as Accepted'))),
-                const PopupMenuItem(value: 'reject', child: ListTile(leading: Icon(Icons.close, color: Colors.red), title: Text('Mark as Rejected'))),
+                const PopupMenuItem(
+                    value: 'accept',
+                    child: ListTile(
+                        leading: Icon(Icons.check, color: Colors.green),
+                        title: Text('Mark as Accepted'))),
+                const PopupMenuItem(
+                    value: 'reject',
+                    child: ListTile(
+                        leading: Icon(Icons.close, color: Colors.red),
+                        title: Text('Mark as Rejected'))),
               ],
             ],
           ),
@@ -271,24 +294,35 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             const Divider(height: 24),
             Row(
               children: [
-                Expanded(child: _buildInfoRow('Plot Number', _quotation!.plotNumber)),
-                Expanded(child: _buildInfoRow('Block', _quotation!.block ?? 'N/A')),
+                Expanded(
+                    child:
+                        _buildInfoRow('Plot Number', _quotation!.plotNumber)),
+                Expanded(
+                    child: _buildInfoRow('Block', _quotation!.block ?? 'N/A')),
               ],
             ),
             Row(
               children: [
-                Expanded(child: _buildInfoRow('Sector', _quotation!.sector ?? 'N/A')),
-                Expanded(child: _buildInfoRow('Location', _quotation!.location ?? 'N/A')),
+                Expanded(
+                    child:
+                        _buildInfoRow('Sector', _quotation!.sector ?? 'N/A')),
+                Expanded(
+                    child: _buildInfoRow(
+                        'Location', _quotation!.location ?? 'N/A')),
               ],
             ),
             const Divider(height: 24),
             Row(
               children: [
-                Expanded(child: _buildInfoRow('Length', '${_quotation!.length} ft')),
-                Expanded(child: _buildInfoRow('Breadth', '${_quotation!.breadth} ft')),
+                Expanded(
+                    child: _buildInfoRow('Length', '${_quotation!.length} ft')),
+                Expanded(
+                    child:
+                        _buildInfoRow('Breadth', '${_quotation!.breadth} ft')),
               ],
             ),
-            _buildInfoRow('Total Area', Formatters.formatArea(_quotation!.totalArea)),
+            _buildInfoRow(
+                'Total Area', Formatters.formatArea(_quotation!.totalArea)),
           ],
         ),
       ),
@@ -296,7 +330,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   }
 
   Widget _buildPricingCard() {
-    final downPayment = _quotation!.totalPrice * (_quotation!.downPaymentPercent / 100);
+    final downPayment =
+        _quotation!.totalPrice * (_quotation!.downPaymentPercent / 100);
 
     return Card(
       elevation: 4,
@@ -314,7 +349,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
+                  child: const Icon(Icons.currency_rupee,
+                      color: AppTheme.primaryColor),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -324,20 +360,32 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
               ],
             ),
             const Divider(height: 24),
-            _buildInfoRow('Rate per Gaj', Formatters.formatCurrency(_quotation!.ratePerGaj)),
-            _buildInfoRow('Total Price', Formatters.formatCurrency(_quotation!.totalPrice)),
+            _buildInfoRow('Rate per Gaj',
+                Formatters.formatCurrency(_quotation!.ratePerGaj)),
+            _buildInfoRow('Total Price',
+                Formatters.formatCurrency(_quotation!.totalPrice)),
             const Divider(height: 24),
-            _buildInfoRow('Down Payment', '${_quotation!.downPaymentPercent.toStringAsFixed(0)}% (${Formatters.formatCurrency(downPayment)})'),
-            _buildInfoRow('Loan Amount', Formatters.formatCurrency(_quotation!.totalPrice - downPayment)),
-            _buildInfoRow('EMI', '${Formatters.formatCurrency(_quotation!.emiAmount)} x ${_quotation!.emiMonths} months'),
+            _buildInfoRow('Down Payment',
+                '${_quotation!.downPaymentPercent.toStringAsFixed(0)}% (${Formatters.formatCurrency(downPayment)})'),
+            _buildInfoRow(
+                'Loan Amount',
+                Formatters.formatCurrency(
+                    _quotation!.totalPrice - downPayment)),
+            _buildInfoRow('EMI',
+                '${Formatters.formatCurrency(_quotation!.emiAmount)} x ${_quotation!.emiMonths} months'),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total EMI Amount:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Total EMI Amount:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 Text(
-                  Formatters.formatCurrency(_quotation!.emiAmount * _quotation!.emiMonths),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
+                  Formatters.formatCurrency(
+                      _quotation!.emiAmount * _quotation!.emiMonths),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppTheme.primaryColor),
                 ),
               ],
             ),
@@ -364,7 +412,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.schedule, color: AppTheme.primaryColor),
+                  child:
+                      const Icon(Icons.schedule, color: AppTheme.primaryColor),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -387,12 +436,16 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Immediate Payment', style: TextStyle(fontSize: 12)),
-                      Text('Down Payment', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text('Down Payment',
+                          style: TextStyle(color: Colors.grey, fontSize: 11)),
                     ],
                   ),
                   Text(
                     Formatters.formatCurrency(_quotation!.downPaymentAmount),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF388E3C)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF388E3C)),
                   ),
                 ],
               ),
@@ -411,12 +464,17 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Monthly EMI', style: TextStyle(fontSize: 12)),
-                      Text('${_quotation!.emiMonths} months', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                      Text('${_quotation!.emiMonths} months',
+                          style: TextStyle(
+                              color: Colors.grey.shade600, fontSize: 11)),
                     ],
                   ),
                   Text(
                     Formatters.formatCurrency(_quotation!.emiAmount),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1976D2)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1976D2)),
                   ),
                 ],
               ),

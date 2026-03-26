@@ -3,9 +3,13 @@ import '../../services/database_service.dart';
 import '../../utils/formatters.dart';
 import '../../config/theme.dart';
 import '../customer/customer_list_screen.dart';
+import '../customer/add_customer_screen.dart';
 import '../booking/booking_form_screen.dart';
+import '../booking/booking_list_screen.dart';
 import '../payment/payment_list_screen.dart';
+import '../payment/add_payment_screen.dart';
 import '../quotation/quotation_list_screen.dart';
+import '../quotation/quotation_form_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -203,7 +207,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Plot bookings',
               Icons.home_work,
               AppTheme.secondaryColor,
-              () {},
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BookingListScreen()),
+              ).then((_) => _loadData()),
             ),
             _buildStatCard(
               'Payments',
@@ -233,7 +240,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildStatCard(String title, String value, String subtitle,
+      IconData icon, Color color, VoidCallback onTap) {
     return Card(
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.1),
@@ -256,7 +264,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     child: Icon(icon, color: color, size: 24),
                   ),
-                  Icon(Icons.arrow_forward_ios, color: Colors.grey.shade400, size: 14),
+                  Icon(Icons.arrow_forward_ios,
+                      color: Colors.grey.shade400, size: 14),
                 ],
               ),
               const Spacer(),
@@ -292,7 +301,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFinancialSummary() {
     final pending = _totalReceivable - _totalReceived;
-    final collectionPercentage = _totalReceivable > 0 
+    final collectionPercentage = _totalReceivable > 0
         ? (_totalReceived / _totalReceivable * 100).toStringAsFixed(1)
         : '0';
 
@@ -303,7 +312,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: EdgeInsets.only(left: 4, bottom: 12),
           child: Row(
             children: [
-              Icon(Icons.account_balance_wallet, color: AppTheme.primaryColor, size: 20),
+              Icon(Icons.account_balance_wallet,
+                  color: AppTheme.primaryColor, size: 20),
               SizedBox(width: 8),
               Text(
                 'Financial Overview',
@@ -379,7 +389,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildFinancialItem(String label, double amount, IconData icon, Color color) {
+  Widget _buildFinancialItem(
+      String label, double amount, IconData icon, Color color) {
     return Column(
       children: [
         Container(
@@ -479,7 +490,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         'New registration',
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const CustomerListScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const AddCustomerScreen()),
                         ).then((_) => _loadData()),
                       ),
                     ),
@@ -491,7 +503,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         'Book a plot',
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const BookingFormScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const BookingFormScreen()),
                         ).then((_) => _loadData()),
                       ),
                     ),
@@ -507,7 +520,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         'Record payment',
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PaymentListScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const AddPaymentScreen()),
                         ).then((_) => _loadData()),
                       ),
                     ),
@@ -519,7 +533,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         'Generate quotation',
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const QuotationListScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const QuotationFormScreen()),
                         ).then((_) => _loadData()),
                       ),
                     ),
@@ -533,7 +548,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, String subtitle, VoidCallback onTap) {
+  Widget _buildActionCard(
+      String title, IconData icon, String subtitle, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -626,7 +642,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _recentActivity.take(5).length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: Colors.grey.shade200),
                   itemBuilder: (context, index) {
                     final payment = _recentActivity[index];
                     return _buildActivityItem(payment);
@@ -646,7 +663,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: AppTheme.primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(Icons.payment, color: AppTheme.primaryColor, size: 20),
+        child:
+            const Icon(Icons.payment, color: AppTheme.primaryColor, size: 20),
       ),
       title: Text(
         payment['customer_name'] ?? 'Unknown',

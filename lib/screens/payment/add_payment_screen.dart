@@ -96,7 +96,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
     if (_selectedBooking == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a booking'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please select a booking'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -133,19 +135,27 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         amount: double.parse(_amountController.text),
         paymentDate: _paymentDate,
         paymentMode: _paymentMode,
-        bankName: _bankNameController.text.trim().isEmpty ? null : _bankNameController.text.trim(),
-        chequeNumber: _chequeNumberController.text.trim().isEmpty ? null : _chequeNumberController.text.trim(),
-        transactionId: _transactionIdController.text.trim().isEmpty ? null : _transactionIdController.text.trim(),
+        bankName: _bankNameController.text.trim().isEmpty
+            ? null
+            : _bankNameController.text.trim(),
+        chequeNumber: _chequeNumberController.text.trim().isEmpty
+            ? null
+            : _chequeNumberController.text.trim(),
+        transactionId: _transactionIdController.text.trim().isEmpty
+            ? null
+            : _transactionIdController.text.trim(),
         receiptNumber: receiptNumber,
         status: _paymentDate.isAfter(DateTime.now()) ? 'pending' : 'completed',
-        remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+        remarks: _remarksController.text.trim().isEmpty
+            ? null
+            : _remarksController.text.trim(),
       );
 
       final paymentId = await _dbService.insertPayment(payment);
       payment.id = paymentId;
 
       await _showReceiptDialog(payment);
-      
+
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +184,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 color: AppTheme.secondaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.check_circle, color: AppTheme.secondaryColor),
+              child: const Icon(Icons.check_circle,
+                  color: AppTheme.secondaryColor),
             ),
             const SizedBox(width: 12),
             const Text('Payment Added'),
@@ -209,7 +220,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     );
 
     if (action == 'print' || action == 'share') {
-      if (_customer != null) {
+      if (_customer != null && _selectedBooking != null) {
         final receiptNumber = await _dbService.generateReceiptNumber();
         if (action == 'print') {
           await _receiptPdfService.printReceipt(
@@ -284,7 +295,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Save Payment'),
             ),
             const SizedBox(height: 20),
@@ -328,14 +342,18 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           decoration: const InputDecoration(
             hintText: 'Choose booking',
           ),
-          items: _bookings.map((b) => DropdownMenuItem(
-            value: b,
-            child: Text('Plot ${b.plotNumber} - ${b.location ?? "N/A"}'),
-          )).toList(),
+          items: _bookings
+              .map((b) => DropdownMenuItem(
+                    value: b,
+                    child:
+                        Text('Plot ${b.plotNumber} - ${b.location ?? "N/A"}'),
+                  ))
+              .toList(),
           onChanged: (value) {
             if (value != null) _selectBooking(value);
           },
-          validator: (value) => value == null ? 'Please select a booking' : null,
+          validator: (value) =>
+              value == null ? 'Please select a booking' : null,
         ),
       ),
     );
@@ -356,8 +374,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 CircleAvatar(
                   backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                   child: Text(
-                    _customer!.name.isNotEmpty ? _customer!.name.substring(0, 1).toUpperCase() : '?',
-                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                    _customer!.name.isNotEmpty
+                        ? _customer!.name.substring(0, 1).toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -367,11 +389,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     children: [
                       Text(
                         _customer!.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
                         _customer!.phone ?? 'No phone',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.grey.shade600, fontSize: 13),
                       ),
                     ],
                   ),
@@ -402,7 +426,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('EMI Amount:'),
-                Text('${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths} months'),
+                Text(
+                    '${Formatters.formatCurrency(booking.emiAmount)} x ${booking.emiMonths} months'),
               ],
             ),
           ],
@@ -425,10 +450,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 labelText: 'Payment Type *',
                 prefixIcon: Icon(Icons.category_outlined),
               ),
-              items: AppConstants.paymentTypes.map((type) => DropdownMenuItem(
-                value: type,
-                child: Text(type),
-              )).toList(),
+              items: AppConstants.paymentTypes
+                  .map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type),
+                      ))
+                  .toList(),
               onChanged: (value) => setState(() => _paymentType = value!),
             ),
             const SizedBox(height: 16),
@@ -448,10 +475,12 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 labelText: 'Payment Mode *',
                 prefixIcon: Icon(Icons.payment),
               ),
-              items: AppConstants.paymentModes.map((mode) => DropdownMenuItem(
-                value: mode,
-                child: Text(mode),
-              )).toList(),
+              items: AppConstants.paymentModes
+                  .map((mode) => DropdownMenuItem(
+                        value: mode,
+                        child: Text(mode),
+                      ))
+                  .toList(),
               onChanged: (value) => setState(() => _paymentMode = value!),
             ),
           ],
@@ -479,14 +508,16 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 Text(Formatters.formatDate(_paymentDate)),
                 if (_paymentDate.isAfter(DateTime.now()))
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppTheme.accentColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'Future',
-                      style: TextStyle(fontSize: 12, color: AppTheme.accentColor),
+                      style:
+                          TextStyle(fontSize: 12, color: AppTheme.accentColor),
                     ),
                   ),
               ],
@@ -498,7 +529,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   }
 
   Widget _buildBankDetails() {
-    final showBankDetails = ['Bank Transfer', 'Cheque', 'DD', 'RTGS', 'NEFT'].contains(_paymentMode);
+    final showBankDetails = ['Bank Transfer', 'Cheque', 'DD', 'RTGS', 'NEFT']
+        .contains(_paymentMode);
 
     if (!showBankDetails) return const SizedBox();
 
@@ -517,7 +549,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.account_balance, color: AppTheme.primaryColor, size: 20),
+                  child: const Icon(Icons.account_balance,
+                      color: AppTheme.primaryColor, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -546,7 +579,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                   prefixIcon: const Icon(Icons.numbers),
                 ),
               ),
-            if (_paymentMode == 'Bank Transfer' || _paymentMode == 'RTGS' || _paymentMode == 'NEFT')
+            if (_paymentMode == 'Bank Transfer' ||
+                _paymentMode == 'RTGS' ||
+                _paymentMode == 'NEFT')
               TextFormField(
                 controller: _transactionIdController,
                 decoration: const InputDecoration(

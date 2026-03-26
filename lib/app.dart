@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'config/theme.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/customer/customer_list_screen.dart';
-import 'screens/booking/booking_form_screen.dart';
+import 'screens/booking/booking_list_screen.dart';
 import 'screens/payment/payment_list_screen.dart';
 import 'screens/quotation/quotation_list_screen.dart';
 
@@ -33,7 +33,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const CustomerListScreen(),
-    const BookingFormScreen(),
+    const BookingListScreen(),
     const PaymentListScreen(),
     const QuotationListScreen(),
   ];
@@ -60,14 +60,13 @@ class _MainNavigationState extends State<MainNavigation> {
           child: NavigationBar(
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) {
-              if (index != 2) {
-                setState(() => _currentIndex = index);
-              }
+              setState(() => _currentIndex = index);
             },
             destinations: [
               NavigationDestination(
                 icon: const Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard, color: AppTheme.primaryColor),
+                selectedIcon:
+                    Icon(Icons.dashboard, color: AppTheme.primaryColor),
                 label: 'Dashboard',
               ),
               NavigationDestination(
@@ -77,7 +76,8 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               NavigationDestination(
                 icon: const Icon(Icons.add_home_outlined),
-                selectedIcon: Icon(Icons.add_home, color: AppTheme.primaryColor),
+                selectedIcon:
+                    Icon(Icons.add_home, color: AppTheme.primaryColor),
                 label: 'Booking',
               ),
               NavigationDestination(
@@ -87,7 +87,8 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               NavigationDestination(
                 icon: const Icon(Icons.description_outlined),
-                selectedIcon: Icon(Icons.description, color: AppTheme.primaryColor),
+                selectedIcon:
+                    Icon(Icons.description, color: AppTheme.primaryColor),
                 label: 'Quotations',
               ),
             ],

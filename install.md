@@ -216,7 +216,26 @@ D:\flutter_sdk\bin\flutter.bat build apk --debug
 
 ## Git Information
 - **Branch:** main
-- **Last Commit:** improved ui fixes
+- **Last Commit:** ui overflow fixes
+
+---
+
+## UI Overflow Fixes
+
+### Dashboard Screen
+- Stats grid: Responsive `childAspectRatio` using `LayoutBuilder` (1.2 for wide, 1.0 for narrow)
+- Stat cards: Replaced `Spacer()` with fixed `SizedBox`, added `overflow: ellipsis`
+- Activity items: Wrapped amount in `Flexible`, added text overflow protection
+
+### Payment List Screen
+- Customer name: Added `maxLines: 1` + `overflow: ellipsis`
+- Amount column: Wrapped in `Flexible` with `overflow: ellipsis`
+- Plot/Payment type: Changed to `Wrap` widget with responsive spacing
+
+### Add Payment Screen
+- EMI text: Wrapped in `Flexible` with `overflow: ellipsis`
+- Customer name: Added `maxLines: 1` + `overflow: ellipsis`
+- Booking dropdown: Added `overflow: ellipsis`
 
 ---
 

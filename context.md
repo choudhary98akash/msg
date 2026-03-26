@@ -1,6 +1,7 @@
 # Session Context - M.S. Group Properties
 
-**Date:** Friday, March 20, 2026
+**Date:** Friday, March 20, 2026 (Session 2)
+**Last Updated:** Thursday, March 26, 2026 (Session 3 - UI Overflow Fixes)
 
 ---
 
@@ -60,6 +61,50 @@ User was asked about:
 ### 8. Git
 - Committed: "improved ui fixes"
 - Pushed to: https://github.com/choudhary98akash/msg.git
+
+---
+
+## UI Overflow Fixes (Session 3 - Mar 26, 2026)
+
+### Issues Identified
+User reported screen overflow issues on:
+- Dashboard overview tabs
+- Payment screens
+
+### Root Causes
+1. **Dashboard Stats Grid:** Fixed `childAspectRatio: 1.1` didn't adapt to screen size
+2. **Dashboard Stat Cards:** `Spacer()` filled space unpredictably
+3. **Dashboard Activity:** Long currency amounts in tight trailing column
+4. **Payment Cards:** Long customer names, plot numbers, payment type badges
+5. **Add Payment:** EMI text `"Rs. X x Y months"` in single row
+
+### Fixes Applied
+
+#### Dashboard Screen (`dashboard_screen.dart`)
+| Fix | Details |
+|-----|---------|
+| Stats Grid | Wrapped in `LayoutBuilder`, responsive `childAspectRatio` (1.2 wide, 1.0 narrow) |
+| Stat Cards | Replaced `Spacer()` with `SizedBox(height: 8)`, added `overflow: ellipsis` |
+| Activity Amount | Wrapped in `Flexible` with `overflow: ellipsis` |
+| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
+
+#### Payment List Screen (`payment_list_screen.dart`)
+| Fix | Details |
+|-----|---------|
+| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
+| Amount Column | Wrapped in `Flexible` with `overflow: ellipsis` |
+| Plot/Type Row | Changed to `Wrap` widget with responsive spacing |
+
+#### Add Payment Screen (`add_payment_screen.dart`)
+| Fix | Details |
+|-----|---------|
+| EMI Text | Wrapped in `Flexible` with `overflow: ellipsis` |
+| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
+| Booking Dropdown | Added `overflow: ellipsis` |
+
+### Build Status
+- **APK:** Built successfully
+- **Location:** `build\app\outputs\flutter-apk\app-debug.apk`
 
 ---
 

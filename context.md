@@ -123,6 +123,31 @@ User reported screen overflow issues on:
 
 ---
 
+## Quotation Cleanup (Session 5 - Mar 27, 2026)
+
+### Changes Made
+- Removed all status tracking (Pending/Accepted/Rejected/Expired)
+- Removed TabBar from quotation list
+- Removed status badge and expiry display from quotation cards
+- Simplified quotation cards to show only: Customer, Plot, Area, Rate, Total Price
+- Single-column layout for Plot Details and Dimensions cards in detail screen
+- Quotations are now simple saved records - just create, view, share, delete
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `quotation_detail_screen.dart` | Removed status methods, action buttons, single-column cards |
+| `quotation_list_screen.dart` | Removed TabController, TabBar, status filtering |
+
+### Flow After Cleanup
+```
+Create Quotation → Save → Listed
+View Quotation → See details, Share Quote, Delete
+NO status tracking, NO accept/reject
+```
+
+---
+
 ## Share Quote Screenshot Feature (Session 4 - Mar 27, 2026)
 
 ### Feature Added

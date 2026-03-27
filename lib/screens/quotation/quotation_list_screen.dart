@@ -14,57 +14,40 @@ class QuotationListScreen extends StatefulWidget {
   State<QuotationListScreen> createState() => _QuotationListScreenState();
 }
 
-class _QuotationListScreenState extends State<QuotationListScreen> with SingleTickerProviderStateMixin {
+class _QuotationListScreenState extends State<QuotationListScreen> {
   final DatabaseService _dbService = DatabaseService();
   final TextEditingController _searchController = TextEditingController();
-  late TabController _tabController;
 
   List<QuotationModel> _allQuotations = [];
   List<QuotationModel> _filteredQuotations = [];
   bool _isLoading = true;
-  String _filterStatus = 'all';
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _loadQuotations();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _onTabChanged() {
-    final statuses = ['all', 'pending', 'accepted', 'expired'];
-    setState(() => _filterStatus = statuses[_tabController.index]);
-    _filterQuotations();
-  }
-
   void _filterQuotations() {
-    List<QuotationModel> baseList = _searchQuery.isEmpty
-        ? _allQuotations
-        : _allQuotations.where((q) {
-            final customerName = q.customerName.toLowerCase();
-            final plotNumber = (q.plotNumber ?? '').toLowerCase();
-            final location = (q.location ?? '').toLowerCase();
-            final query = _searchQuery.toLowerCase();
-            return customerName.contains(query) ||
-                   plotNumber.contains(query) ||
-                   location.contains(query);
-          }).toList();
-
-    if (_filterStatus == 'all') {
-      _filteredQuotations = baseList;
-    } else if (_filterStatus == 'expired') {
-      _filteredQuotations = baseList.where((q) => q.isExpired).toList();
+    if (_searchQuery.isEmpty) {
+      _filteredQuotations = _allQuotations;
     } else {
-      _filteredQuotations = baseList.where((q) => q.status == _filterStatus).toList();
+      _filteredQuotations = _allQuotations.where((q) {
+        final customerName = q.customerName.toLowerCase();
+        final plotNumber = (q.plotNumber ?? '').toLowerCase();
+        final location = (q.location ?? '').toLowerCase();
+        final query = _searchQuery.toLowerCase();
+        return customerName.contains(query) ||
+            plotNumber.contains(query) ||
+            location.contains(query);
+      }).toList();
     }
   }
 
@@ -132,60 +115,40 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(130),
-          child: Column(
-            children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                    _filterQuotations();
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search by customer, plot or location...',
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                              _filterQuotations();
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
+          preferredSize: const Size.fromHeight(65),
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                _filterQuotations();
+              },
+              decoration: InputDecoration(
+                hintText: 'Search by customer, plot or location...',
+                prefixIcon:
+                    const Icon(Icons.search, color: AppTheme.primaryColor),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                          _filterQuotations();
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  indicatorColor: AppTheme.primaryColor,
-                  indicatorWeight: 3,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabs: const [
-                    Tab(text: 'All'),
-                    Tab(text: 'Pending'),
-                    Tab(text: 'Accepted'),
-                    Tab(text: 'Expired'),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -197,7 +160,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -268,7 +232,9 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _searchQuery.isEmpty ? Icons.description_outlined : Icons.search_off,
+                  _searchQuery.isEmpty
+                      ? Icons.description_outlined
+                      : Icons.search_off,
                   size: 64,
                   color: AppTheme.primaryColor,
                 ),
@@ -296,7 +262,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                 ElevatedButton.icon(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const QuotationFormScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const QuotationFormScreen()),
                   ).then((_) => _loadQuotations()),
                   icon: const Icon(Icons.add),
                   label: const Text('Create Quotation'),
@@ -309,9 +276,6 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
   }
 
   Widget _buildQuotationCard(QuotationModel quotation) {
-    final statusColor = _getStatusColor(quotation);
-    final isExpired = quotation.isExpired;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Slidable(
@@ -330,7 +294,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
               foregroundColor: Colors.white,
               icon: Icons.visibility,
               label: 'View',
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.horizontal(left: Radius.circular(12)),
             ),
             SlidableAction(
               onPressed: (_) => _deleteQuotation(quotation),
@@ -338,7 +303,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
               foregroundColor: Colors.white,
               icon: Icons.delete,
               label: 'Delete',
-              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.horizontal(right: Radius.circular(12)),
             ),
           ],
         ),
@@ -364,7 +330,9 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                         backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                         child: Text(
                           quotation.customerName.isNotEmpty
-                              ? quotation.customerName.substring(0, 1).toUpperCase()
+                              ? quotation.customerName
+                                  .substring(0, 1)
+                                  .toUpperCase()
                               : '?',
                           style: const TextStyle(
                             color: AppTheme.primaryColor,
@@ -388,20 +356,26 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.home, size: 14, color: Colors.grey.shade600),
+                                Icon(Icons.home,
+                                    size: 14, color: Colors.grey.shade600),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Plot ${quotation.plotNumber}',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13),
                                 ),
                                 if (quotation.location != null) ...[
                                   const SizedBox(width: 8),
-                                  Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                                  Icon(Icons.location_on,
+                                      size: 14, color: Colors.grey.shade600),
                                   const SizedBox(width: 2),
                                   Expanded(
                                     child: Text(
                                       quotation.location!,
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -409,21 +383,6 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                               ],
                             ),
                           ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          isExpired ? 'EXPIRED' : quotation.status.toUpperCase(),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
                         ),
                       ),
                     ],
@@ -437,12 +396,14 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                           children: [
                             Text(
                               'Area',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey.shade600),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               Formatters.formatArea(quotation.totalArea),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -453,12 +414,14 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                           children: [
                             Text(
                               'Rate',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey.shade600),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${Formatters.formatCurrency(quotation.ratePerGaj)}/sq.ft',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -469,7 +432,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                           children: [
                             Text(
                               'Total Price',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey.shade600),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -485,24 +449,6 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.schedule, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        quotation.validUntil != null
-                            ? isExpired
-                                ? 'Expired on ${Formatters.formatDate(quotation.validUntil!)}'
-                                : 'Valid till ${Formatters.formatDate(quotation.validUntil!)}'
-                            : 'No expiry',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isExpired ? Colors.red : Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -510,18 +456,5 @@ class _QuotationListScreenState extends State<QuotationListScreen> with SingleTi
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(QuotationModel quotation) {
-    if (quotation.isExpired) return Colors.red;
-    switch (quotation.status.toLowerCase()) {
-      case 'accepted':
-        return const Color(0xFF388E3C);
-      case 'rejected':
-        return Colors.red;
-      case 'pending':
-      default:
-        return const Color(0xFFFF9800);
-    }
   }
 }

@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import '../../services/database_service.dart';
 import '../../models/quotation_model.dart';
 import '../../utils/formatters.dart';
@@ -17,6 +23,7 @@ class QuotationDetailScreen extends StatefulWidget {
 class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   final DatabaseService _dbService = DatabaseService();
   final QuotationPdfService _pdfService = QuotationPdfService();
+  final GlobalKey _captureKey = GlobalKey();
 
   QuotationModel? _quotation;
   bool _isLoading = true;
@@ -139,38 +146,51 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _quotation == null
-              ? const Center(child: Text('Quotation not found'))
-              : RefreshIndicator(
-                  onRefresh: _loadQuotation,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatusCard(),
-                        const SizedBox(height: 16),
-                        _buildCustomerCard(),
-                        const SizedBox(height: 16),
-                        _buildPlotCard(),
-                        const SizedBox(height: 16),
-                        _buildPricingCard(),
-                        const SizedBox(height: 16),
-                        _buildPaymentScheduleCard(),
-                        if (_quotation?.remarks != null) ...[
-                          const SizedBox(height: 16),
-                          _buildRemarksCard(),
-                        ],
-                        const SizedBox(height: 32),
-                        _buildActionButtons(),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _quotation == null
+                    ? const Center(child: Text('Quotation not found'))
+                    : RefreshIndicator(
+                        onRefresh: _loadQuotation,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          child: RepaintBoundary(
+                            key: _captureKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildStatusCard(),
+                                const SizedBox(height: 16),
+                                _buildCustomerCard(),
+                                const SizedBox(height: 16),
+                                _buildPlotCard(),
+                                const SizedBox(height: 16),
+                                _buildPricingCard(),
+                                const SizedBox(height: 16),
+                                _buildPaymentScheduleCard(),
+                                if (_quotation?.remarks != null) ...[
+                                  const SizedBox(height: 16),
+                                  _buildRemarksCard(),
+                                ],
+                                const SizedBox(height: 32),
+                                _buildActionButtons(),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _buildShareButton(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -586,6 +606,111 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       case 'pending':
       default:
         return Icons.pending;
+    }
+  }
+
+  Widget _buildShareButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _takeScreenshot,
+        icon: const Icon(Icons.share),
+        label: const Text('Share Quote'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.primaryColor,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: AppTheme.primaryColor),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _takeScreenshot() async {
+    try {
+      final boundary = _captureKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.primaryColor),
+                  const SizedBox(height: 16),
+                  const Text('Creating PDF...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData != null && mounted) {
+        final Uint8List pngBytes = byteData.buffer.asUint8List();
+        await _createAndSharePdf(pngBytes);
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _createAndSharePdf(Uint8List imageBytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(imageBytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+
+      final PdfPageFormat format = PdfPageFormat(
+        image.width.toDouble(),
+        image.height.toDouble(),
+        marginAll: 0,
+      );
+
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: format,
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Image(
+                pw.MemoryImage(imageBytes),
+                fit: pw.BoxFit.contain,
+              ),
+            );
+          },
+        ),
+      );
+
+      final bytes = await pdf.save();
+
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'quotation_${_quotation?.plotNumber ?? 'share'}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating PDF: $e')),
+        );
+      }
     }
   }
 }

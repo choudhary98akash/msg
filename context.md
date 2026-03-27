@@ -123,6 +123,48 @@ User reported screen overflow issues on:
 
 ---
 
+## Share Quote Screenshot Feature (Session 4 - Mar 27, 2026)
+
+### Feature Added
+"Share Quote" button on quotation detail screen that:
+- Captures the **entire scrollable page** (top to bottom)
+- Excludes the Share button itself from capture
+- Creates a PDF matching exact content dimensions
+- Opens share dialog with PDF file
+
+### Implementation
+| Component | Details |
+|-----------|---------|
+| Capture Method | `RepaintBoundary` + `GlobalKey` + `RenderRepaintBoundary.toImage()` |
+| PDF Generation | `pdf` package with exact image dimensions |
+| Share | `Printing.sharePdf()` |
+| Quality | 3x pixel ratio for crisp output |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `quotation_detail_screen.dart` | Restructured body, added full-page capture, PDF generation |
+
+### Flow
+```
+Tap "Share Quote" 
+  → Loading dialog ("Creating PDF...")
+  → Capture full scrollable content
+  → Create PDF with exact content size
+  → Open system share dialog with PDF
+```
+
+### Packages Used
+- `pdf: ^3.11.1` (already in project)
+- `printing: ^5.13.3` (already in project)
+- `dart:ui` (Flutter)
+- `flutter/rendering.dart`
+
+### Removed
+- `screenshot: ^3.0.0` (temporary package removed)
+
+---
+
 ## Navigation & Button Fixes (Session 2 - Mar 20, 2026)
 
 ### Issues Fixed

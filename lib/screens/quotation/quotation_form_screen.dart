@@ -23,6 +23,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   CustomerModel? _selectedCustomer;
   bool _isLoading = false;
   bool _isExistingCustomer = false;
+  bool _isUpdatingDownPayment = false;
 
   final _customerNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -57,7 +58,6 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _lengthController.addListener(_calculateArea);
     _breadthController.addListener(_calculateArea);
     _rateController.addListener(_calculateTotalPrice);
-    _downPaymentPercentController.addListener(_calculateDownPayment);
     _emiMonthsController.addListener(_calculateEmi);
   }
 
@@ -77,26 +77,59 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     if (area != null && rate != null && area > 0 && rate > 0) {
       final totalPrice = Calculator.calculateTotalPrice(area, rate);
       _totalPriceController.text = totalPrice.toStringAsFixed(0);
-      _calculateDownPayment();
+      _calculateDownPaymentFromPercent();
     }
   }
 
-  void _calculateDownPayment() {
-    final totalPrice = double.tryParse(_totalPriceController.text);
-    final percent = double.tryParse(_downPaymentPercentController.text);
-    if (totalPrice != null && percent != null && totalPrice > 0) {
-      final downPayment = Calculator.calculateDownPaymentAmount(totalPrice, percent);
-      _downPaymentAmountController.text = downPayment.toStringAsFixed(0);
+  void _calculateDownPaymentFromPercent() {
+    if (_isUpdatingDownPayment) return;
+    _isUpdatingDownPayment = true;
+
+    final totalPrice = double.tryParse(_totalPriceController.text) ?? 0;
+    var percent = double.tryParse(_downPaymentPercentController.text) ?? 0;
+
+    if (percent > 100) {
+      percent = 100;
+      _downPaymentPercentController.text = '100';
+    }
+
+    if (totalPrice > 0 && percent >= 0) {
+      final amount = totalPrice * (percent / 100);
+      _downPaymentAmountController.text = amount.toStringAsFixed(0);
       _calculateEmi();
     }
+
+    _isUpdatingDownPayment = false;
+  }
+
+  void _calculateDownPaymentFromAmount() {
+    if (_isUpdatingDownPayment) return;
+    _isUpdatingDownPayment = true;
+
+    final totalPrice = double.tryParse(_totalPriceController.text) ?? 0;
+    var amount = double.tryParse(_downPaymentAmountController.text) ?? 0;
+
+    if (totalPrice > 0 && amount > totalPrice) {
+      amount = totalPrice;
+      _downPaymentAmountController.text = amount.toStringAsFixed(0);
+    }
+
+    if (totalPrice > 0 && amount >= 0) {
+      final percent = (amount / totalPrice) * 100;
+      _downPaymentPercentController.text = percent.toStringAsFixed(2);
+      _calculateEmi();
+    }
+
+    _isUpdatingDownPayment = false;
   }
 
   void _calculateEmi() {
-    final totalPrice = double.tryParse(_totalPriceController.text);
-    final downPayment = double.tryParse(_downPaymentAmountController.text);
-    final emiMonths = int.tryParse(_emiMonthsController.text);
-    if (totalPrice != null && downPayment != null && emiMonths != null && totalPrice > 0) {
-      final emi = Calculator.calculateEmiAmount(totalPrice, downPayment, emiMonths);
+    final totalPrice = double.tryParse(_totalPriceController.text) ?? 0;
+    final downPayment = double.tryParse(_downPaymentAmountController.text) ?? 0;
+    final emiMonths = int.tryParse(_emiMonthsController.text) ?? 0;
+    if (totalPrice > 0 && downPayment >= 0 && emiMonths > 0) {
+      final emi =
+          Calculator.calculateEmiAmount(totalPrice, downPayment, emiMonths);
       _emiAmountController.text = emi > 0 ? emi.toStringAsFixed(0) : '0';
     }
   }
@@ -118,7 +151,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _areaController.text = quotation.totalArea.toString();
     _rateController.text = quotation.ratePerGaj.toString();
     _totalPriceController.text = quotation.totalPrice.toString();
-    _downPaymentPercentController.text = quotation.downPaymentPercent.toString();
+    _downPaymentPercentController.text =
+        quotation.downPaymentPercent.toString();
     _downPaymentAmountController.text = quotation.downPaymentAmount.toString();
     _emiMonthsController.text = quotation.emiMonths.toString();
     _emiAmountController.text = quotation.emiAmount.toString();
@@ -126,7 +160,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _remarksController.text = quotation.remarks ?? '';
 
     if (quotation.customerId != null) {
-      final customer = _customers.where((c) => c.id == quotation.customerId).firstOrNull;
+      final customer =
+          _customers.where((c) => c.id == quotation.customerId).firstOrNull;
       if (customer != null) {
         _selectedCustomer = customer;
         _isExistingCustomer = true;
@@ -141,32 +176,40 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     final breadth = double.tryParse(_breadthController.text) ?? 0;
     final area = double.tryParse(_areaController.text) ?? 0;
     final rate = double.tryParse(_rateController.text) ?? 0;
-    final downPaymentPercent = double.tryParse(_downPaymentPercentController.text) ?? 0;
+    final downPaymentPercent =
+        double.tryParse(_downPaymentPercentController.text) ?? 0;
 
     if (length <= 0 || breadth <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid dimensions'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please enter valid dimensions'),
+            backgroundColor: Colors.red),
       );
       return;
     }
 
     if (area <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Area cannot be zero'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Area cannot be zero'), backgroundColor: Colors.red),
       );
       return;
     }
 
     if (rate <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid rate'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please enter a valid rate'),
+            backgroundColor: Colors.red),
       );
       return;
     }
 
     if (downPaymentPercent > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Down payment cannot exceed 100%'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Down payment cannot exceed 100%'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -179,12 +222,22 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
       final quotation = QuotationModel(
         customerId: _selectedCustomer?.id,
-        customerName: _isExistingCustomer ? _selectedCustomer!.name : _customerNameController.text.trim(),
-        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        customerName: _isExistingCustomer
+            ? _selectedCustomer!.name
+            : _customerNameController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
         plotNumber: _plotNumberController.text.trim(),
-        block: _blockController.text.trim().isEmpty ? null : _blockController.text.trim(),
-        sector: _sectorController.text.trim().isEmpty ? null : _sectorController.text.trim(),
-        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        block: _blockController.text.trim().isEmpty
+            ? null
+            : _blockController.text.trim(),
+        sector: _sectorController.text.trim().isEmpty
+            ? null
+            : _sectorController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
         length: length,
         breadth: breadth,
         totalArea: area,
@@ -196,7 +249,9 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         emiAmount: double.parse(_emiAmountController.text),
         validityDays: validityDays,
         validUntil: validUntil,
-        remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+        remarks: _remarksController.text.trim().isEmpty
+            ? null
+            : _remarksController.text.trim(),
       );
 
       await _dbService.insertQuotation(quotation);
@@ -244,7 +299,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.quotation != null ? 'Edit Quotation' : 'Create Quotation'),
+        title: Text(
+            widget.quotation != null ? 'Edit Quotation' : 'Create Quotation'),
       ),
       body: Form(
         key: _formKey,
@@ -284,7 +340,10 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Create Quotation'),
             ),
             const SizedBox(height: 20),
@@ -365,12 +424,16 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
               DropdownButtonFormField<CustomerModel>(
                 value: _selectedCustomer,
                 decoration: const InputDecoration(hintText: 'Choose customer'),
-                items: _customers.map((c) => DropdownMenuItem(
-                  value: c,
-                  child: Text('${c.name} - ${c.phone ?? "No phone"}'),
-                )).toList(),
+                items: _customers
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text('${c.name} - ${c.phone ?? "No phone"}'),
+                        ))
+                    .toList(),
                 onChanged: (value) => setState(() => _selectedCustomer = value),
-                validator: (value) => _isExistingCustomer && value == null ? 'Please select a customer' : null,
+                validator: (value) => _isExistingCustomer && value == null
+                    ? 'Please select a customer'
+                    : null,
               )
             else ...[
               TextFormField(
@@ -482,7 +545,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                       prefixIcon: Icon(Icons.straighten),
                     ),
                     keyboardType: TextInputType.number,
-                    validator: (v) => Validators.validateDimension(v, 'Breadth'),
+                    validator: (v) =>
+                        Validators.validateDimension(v, 'Breadth'),
                   ),
                 ),
               ],
@@ -549,7 +613,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                       prefixIcon: Icon(Icons.percent),
                     ),
                     keyboardType: TextInputType.number,
-                    validator: Validators.validateDownPaymentPercent,
+                    onChanged: (value) => _calculateDownPaymentFromPercent(),
+                    validator: (v) {
+                      final percent = double.tryParse(v ?? '') ?? 0;
+                      if (percent > 100) return 'Max 100%';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -561,7 +630,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                       prefixIcon: Icon(Icons.currency_rupee),
                     ),
                     keyboardType: TextInputType.number,
-                    readOnly: true,
+                    onChanged: (value) => _calculateDownPaymentFromAmount(),
                   ),
                 ),
               ],

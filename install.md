@@ -216,15 +216,15 @@ D:\flutter_sdk\bin\flutter.bat build apk --debug
 
 ## Git Information
 - **Branch:** main
-- **Last Commit:** ui overflow fixes
+- **Last Commit:** view mode for payment and booking
 
 ---
 
-## UI Overflow Fixes
+## UI Overflow Fixes & View Mode
 
 ### Dashboard Screen
-- Stats grid: Responsive `childAspectRatio` using `LayoutBuilder` (1.2 for wide, 1.0 for narrow)
-- Stat cards: Replaced `Spacer()` with fixed `SizedBox`, added `overflow: ellipsis`
+- Stats grid: Responsive `childAspectRatio` using `MediaQuery` (1.4 for wide, 1.2 for narrow)
+- Stat cards: Reduced padding to 12px, icon size to 20px, font sizes (28→24, 11→10)
 - Activity items: Wrapped amount in `Flexible`, added text overflow protection
 
 ### Payment List Screen
@@ -232,10 +232,15 @@ D:\flutter_sdk\bin\flutter.bat build apk --debug
 - Amount column: Wrapped in `Flexible` with `overflow: ellipsis`
 - Plot/Payment type: Changed to `Wrap` widget with responsive spacing
 
-### Add Payment Screen
-- EMI text: Wrapped in `Flexible` with `overflow: ellipsis`
-- Customer name: Added `maxLines: 1` + `overflow: ellipsis`
-- Booking dropdown: Added `overflow: ellipsis`
+### Add Payment Screen - View Mode
+- Clicking payment shows view-only mode (not edit form)
+- Read-only display: Booking info, Payment details, Receipt
+- Actions: Print PDF, Share PDF, Delete Payment
+
+### Booking Form Screen - View Mode
+- Clicking booking shows view-only mode (not edit form)
+- Read-only display: Customer info, Plot details, Dimensions, Payment terms, Dates, Remarks
+- Actions: Print booking form, Share booking form, Delete Booking
 
 ---
 

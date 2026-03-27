@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
+import '../../services/booking_pdf_service.dart';
 import '../../models/customer_model.dart';
 import '../../models/booking_model.dart';
 import '../../utils/validators.dart';
@@ -20,6 +21,7 @@ class BookingFormScreen extends StatefulWidget {
 class _BookingFormScreenState extends State<BookingFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _dbService = DatabaseService();
+  final _bookingPdfService = BookingPdfService();
 
   CustomerModel? _selectedCustomer;
   List<CustomerModel> _customers = [];
@@ -44,6 +46,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   DateTime _bookingDate = DateTime.now();
   DateTime? _tokenDate;
   bool _autoCalculate = true;
+
+  bool get _isViewMode => widget.booking != null;
 
   @override
   void initState() {
@@ -71,7 +75,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   }
 
   void _onInputChanged() {
-    if (_autoCalculate && _lengthController.text.isNotEmpty && _breadthController.text.isNotEmpty) {
+    if (_autoCalculate &&
+        _lengthController.text.isNotEmpty &&
+        _breadthController.text.isNotEmpty) {
       _calculateAll();
     }
   }
@@ -100,7 +106,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     final totalPrice = double.tryParse(_totalPriceController.text);
     final percent = double.tryParse(_downPaymentPercentController.text);
     if (totalPrice != null && percent != null && totalPrice > 0) {
-      final downPayment = Calculator.calculateDownPaymentAmount(totalPrice, percent);
+      final downPayment =
+          Calculator.calculateDownPaymentAmount(totalPrice, percent);
       _downPaymentAmountController.text = downPayment.toStringAsFixed(0);
       _calculateEmi();
     }
@@ -110,8 +117,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     final totalPrice = double.tryParse(_totalPriceController.text);
     final downPayment = double.tryParse(_downPaymentAmountController.text);
     final emiMonths = int.tryParse(_emiMonthsController.text);
-    if (totalPrice != null && downPayment != null && emiMonths != null && totalPrice > 0) {
-      final emi = Calculator.calculateEmiAmount(totalPrice, downPayment, emiMonths);
+    if (totalPrice != null &&
+        downPayment != null &&
+        emiMonths != null &&
+        totalPrice > 0) {
+      final emi =
+          Calculator.calculateEmiAmount(totalPrice, downPayment, emiMonths);
       _emiAmountController.text = emi > 0 ? emi.toStringAsFixed(0) : '0';
     }
   }
@@ -123,6 +134,11 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   Future<void> _loadCustomers() async {
     final customers = await _dbService.getAllCustomers();
     setState(() => _customers = customers);
+
+    if (widget.booking != null) {
+      final customer = await _dbService.getCustomer(widget.booking!.customerId);
+      setState(() => _selectedCustomer = customer);
+    }
   }
 
   void _populateFields(BookingModel booking) {
@@ -169,7 +185,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a customer'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please select a customer'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -179,7 +197,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
     if (downPayment > totalPrice) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Down payment cannot exceed total price'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Down payment cannot exceed total price'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -187,7 +207,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     final emiAmount = double.tryParse(_emiAmountController.text) ?? 0;
     if (emiAmount > 0 && emiAmount < AppConstants.minEmiAmount) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Minimum EMI amount is ${AppConstants.minEmiAmount}'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Minimum EMI amount is ${AppConstants.minEmiAmount}'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -198,9 +220,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       final booking = BookingModel(
         customerId: _selectedCustomer!.id!,
         plotNumber: _plotNumberController.text.trim(),
-        block: _blockController.text.trim().isEmpty ? null : _blockController.text.trim(),
-        sector: _sectorController.text.trim().isEmpty ? null : _sectorController.text.trim(),
-        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        block: _blockController.text.trim().isEmpty
+            ? null
+            : _blockController.text.trim(),
+        sector: _sectorController.text.trim().isEmpty
+            ? null
+            : _sectorController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
         length: double.parse(_lengthController.text),
         breadth: double.parse(_breadthController.text),
         totalArea: double.parse(_areaController.text),
@@ -213,7 +241,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         tokenDate: _tokenDate,
         tokenAmount: double.parse(_tokenAmountController.text),
         bookingDate: _bookingDate,
-        remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+        remarks: _remarksController.text.trim().isEmpty
+            ? null
+            : _remarksController.text.trim(),
       );
 
       await _dbService.insertBooking(booking);
@@ -235,6 +265,66 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     }
   }
 
+  Future<void> _deleteBooking() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Booking'),
+        content: const Text(
+            'Are you sure you want to delete this booking? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _dbService.deleteBooking(widget.booking!.id!);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking deleted successfully')),
+        );
+      }
+    }
+  }
+
+  Future<void> _printBooking() async {
+    if (_selectedCustomer == null || widget.booking == null) return;
+
+    final nominees = await _dbService.getNominees(_selectedCustomer!.id!);
+    final bookingNumber = await _dbService.generateBookingNumber();
+
+    await _bookingPdfService.printBookingForm(
+      booking: widget.booking!,
+      customer: _selectedCustomer!,
+      nominees: nominees,
+      bookingNumber: bookingNumber,
+    );
+  }
+
+  Future<void> _shareBooking() async {
+    if (_selectedCustomer == null || widget.booking == null) return;
+
+    final nominees = await _dbService.getNominees(_selectedCustomer!.id!);
+    final bookingNumber = await _dbService.generateBookingNumber();
+
+    await _bookingPdfService.shareBookingForm(
+      booking: widget.booking!,
+      customer: _selectedCustomer!,
+      nominees: nominees,
+      bookingNumber: bookingNumber,
+    );
+  }
+
   @override
   void dispose() {
     _plotNumberController.dispose();
@@ -247,7 +337,6 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     _rateController.dispose();
     _totalPriceController.dispose();
     _downPaymentPercentController.dispose();
-    _downPaymentAmountController.dispose();
     _emiMonthsController.dispose();
     _emiAmountController.dispose();
     _tokenAmountController.dispose();
@@ -257,9 +346,405 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isViewMode) {
+      return _buildViewMode();
+    }
+    return _buildAddMode();
+  }
+
+  Widget _buildViewMode() {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.booking != null ? 'Edit Booking' : 'New Booking'),
+        title: const Text('Booking Details'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(Icons.person, 'Customer Info'),
+                  const SizedBox(height: 12),
+                  _buildCustomerView(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(Icons.home_work, 'Plot Details'),
+                  const SizedBox(height: 12),
+                  _buildPlotView(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(Icons.straighten, 'Dimensions & Pricing'),
+                  const SizedBox(height: 12),
+                  _buildPricingView(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(Icons.payment, 'Payment Terms'),
+                  const SizedBox(height: 12),
+                  _buildPaymentTermsView(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(Icons.calendar_today, 'Dates'),
+                  const SizedBox(height: 12),
+                  _buildDatesView(),
+                  if (_remarksController.text.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildSectionHeader(Icons.note, 'Remarks'),
+                    const SizedBox(height: 12),
+                    _buildRemarksView(),
+                  ],
+                  const SizedBox(height: 24),
+                  _buildActionButtons(),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildCustomerView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+              radius: 28,
+              child: Text(
+                _selectedCustomer?.name.isNotEmpty == true
+                    ? _selectedCustomer!.name.substring(0, 1).toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedCustomer?.name ?? 'Unknown',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.phone, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        _selectedCustomer?.phone ?? 'No phone',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_selectedCustomer?.email != null &&
+                      _selectedCustomer!.email!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.email,
+                            size: 14, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _selectedCustomer!.email!,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlotView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildDetailRow(
+                'Plot Number', _plotNumberController.text, Icons.home),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Block',
+                _blockController.text.isEmpty ? 'N/A' : _blockController.text,
+                Icons.grid_view),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Sector',
+                _sectorController.text.isEmpty ? 'N/A' : _sectorController.text,
+                Icons.location_city),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Location',
+                _locationController.text.isEmpty
+                    ? 'N/A'
+                    : _locationController.text,
+                Icons.location_on),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPricingView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                    child: _buildDetailRow('Length',
+                        '${_lengthController.text} ft', Icons.straighten)),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: _buildDetailRow('Breadth',
+                        '${_breadthController.text} ft', Icons.straighten)),
+              ],
+            ),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Area', '${_areaController.text} sq.yd', Icons.square_foot),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Rate',
+                '${Formatters.formatCurrency(double.tryParse(_rateController.text) ?? 0)}/sq.yd',
+                Icons.currency_rupee),
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Total Price',
+              Formatters.formatCurrency(
+                  double.tryParse(_totalPriceController.text) ?? 0),
+              Icons.calculate,
+              valueStyle: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentTermsView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                    child: _buildDetailRow(
+                        'Down Payment',
+                        '${_downPaymentPercentController.text}%',
+                        Icons.percent)),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: _buildDetailRow(
+                        'Amount',
+                        Formatters.formatCurrency(double.tryParse(
+                                _downPaymentAmountController.text) ??
+                            0),
+                        Icons.currency_rupee)),
+              ],
+            ),
+            const Divider(height: 20),
+            Row(
+              children: [
+                Expanded(
+                    child: _buildDetailRow('EMI Months',
+                        _emiMonthsController.text, Icons.calendar_month)),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: _buildDetailRow(
+                        'EMI Amount',
+                        Formatters.formatCurrency(
+                            double.tryParse(_emiAmountController.text) ?? 0),
+                        Icons.currency_rupee)),
+              ],
+            ),
+            const Divider(height: 20),
+            _buildDetailRow(
+                'Token Amount',
+                Formatters.formatCurrency(
+                    double.tryParse(_tokenAmountController.text) ?? 0),
+                Icons.token),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatesView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildDetailRow('Booking Date', Formatters.formatDate(_bookingDate),
+                Icons.calendar_today),
+            const Divider(height: 20),
+            _buildDetailRow(
+              'Token Date',
+              _tokenDate != null ? Formatters.formatDate(_tokenDate!) : 'N/A',
+              Icons.event,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemarksView() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.note, color: AppTheme.primaryColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _remarksController.text,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon,
+      {TextStyle? valueStyle}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: valueStyle ?? const TextStyle(fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _printBooking,
+                icon: const Icon(Icons.print),
+                label: const Text('Print'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _shareBooking,
+                icon: const Icon(Icons.share),
+                label: const Text('Share'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _deleteBooking,
+            icon: const Icon(Icons.delete),
+            label: const Text('Delete Booking'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddMode() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Booking'),
       ),
       body: Form(
         key: _formKey,
@@ -299,7 +784,10 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Create Booking'),
             ),
             const SizedBox(height: 20),
@@ -357,12 +845,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
               decoration: const InputDecoration(
                 hintText: 'Choose customer',
               ),
-              items: _customers.map((c) => DropdownMenuItem(
-                value: c,
-                child: Text('${c.name} - ${c.phone ?? "No phone"}'),
-              )).toList(),
+              items: _customers
+                  .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text('${c.name} - ${c.phone ?? "No phone"}'),
+                      ))
+                  .toList(),
               onChanged: (value) => setState(() => _selectedCustomer = value),
-              validator: (value) => value == null ? 'Please select a customer' : null,
+              validator: (value) =>
+                  value == null ? 'Please select a customer' : null,
             ),
           ],
         ),
@@ -454,7 +945,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                       prefixIcon: Icon(Icons.straighten),
                     ),
                     keyboardType: TextInputType.number,
-                    validator: (v) => Validators.validateDimension(v, 'Breadth'),
+                    validator: (v) =>
+                        Validators.validateDimension(v, 'Breadth'),
                   ),
                 ),
               ],
@@ -613,9 +1105,13 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                     prefixIcon: Icon(Icons.event),
                   ),
                   child: Text(
-                    _tokenDate != null ? Formatters.formatDate(_tokenDate!) : 'Select',
+                    _tokenDate != null
+                        ? Formatters.formatDate(_tokenDate!)
+                        : 'Select',
                     style: TextStyle(
-                      color: _tokenDate != null ? AppTheme.textPrimaryColor : Colors.grey,
+                      color: _tokenDate != null
+                          ? AppTheme.textPrimaryColor
+                          : Colors.grey,
                     ),
                   ),
                 ),

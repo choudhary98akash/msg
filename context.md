@@ -1,7 +1,7 @@
 # Session Context - M.S. Group Properties
 
 **Date:** Friday, March 20, 2026 (Session 2)
-**Last Updated:** Thursday, March 26, 2026 (Session 3 - UI Overflow Fixes)
+**Last Updated:** Thursday, March 26, 2026 (Session 3 - UI Overflow Fixes & View Mode)
 
 ---
 
@@ -64,43 +64,58 @@ User was asked about:
 
 ---
 
-## UI Overflow Fixes (Session 3 - Mar 26, 2026)
+## UI Overflow Fixes & View Mode (Session 3 - Mar 26, 2026)
 
 ### Issues Identified
 User reported screen overflow issues on:
 - Dashboard overview tabs
 - Payment screens
+- Clicking payment/booking items should show view-only mode
 
-### Root Causes
-1. **Dashboard Stats Grid:** Fixed `childAspectRatio: 1.1` didn't adapt to screen size
-2. **Dashboard Stat Cards:** `Spacer()` filled space unpredictably
-3. **Dashboard Activity:** Long currency amounts in tight trailing column
-4. **Payment Cards:** Long customer names, plot numbers, payment type badges
-5. **Add Payment:** EMI text `"Rs. X x Y months"` in single row
-
-### Fixes Applied
+### Dashboard Overflow Fixes
 
 #### Dashboard Screen (`dashboard_screen.dart`)
 | Fix | Details |
 |-----|---------|
-| Stats Grid | Wrapped in `LayoutBuilder`, responsive `childAspectRatio` (1.2 wide, 1.0 narrow) |
-| Stat Cards | Replaced `Spacer()` with `SizedBox(height: 8)`, added `overflow: ellipsis` |
+| Stats Grid | Replaced `LayoutBuilder` with `MediaQuery`, responsive `childAspectRatio` (1.4 wide, 1.2 narrow) |
+| Stat Cards | Reduced padding to 12px, icon size to 20px, font sizes (28→24, 11→10) |
 | Activity Amount | Wrapped in `Flexible` with `overflow: ellipsis` |
 | Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
 
-#### Payment List Screen (`payment_list_screen.dart`)
-| Fix | Details |
-|-----|---------|
-| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
-| Amount Column | Wrapped in `Flexible` with `overflow: ellipsis` |
-| Plot/Type Row | Changed to `Wrap` widget with responsive spacing |
+### Payment View Mode Fix
 
 #### Add Payment Screen (`add_payment_screen.dart`)
-| Fix | Details |
-|-----|---------|
-| EMI Text | Wrapped in `Flexible` with `overflow: ellipsis` |
-| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
-| Booking Dropdown | Added `overflow: ellipsis` |
+| Issue | Fix |
+|-------|-----|
+| Dropdown error on view | Removed active booking filter, load all bookings |
+| Edit form shown on view | Added `_isViewMode` flag, separate `_buildViewMode()` UI |
+| Async loading issue | Added `await` before `_selectBooking()` |
+
+**View Mode UI:**
+- Read-only booking info card
+- Read-only payment details card (Type, Amount, Date, Mode, Bank details, Receipt)
+- Print button → Opens PDF directly
+- Share button → Shares PDF
+- Delete Payment button → Confirmation → Delete
+
+### Booking View Mode Fix
+
+#### Booking Form Screen (`booking_form_screen.dart`)
+| Issue | Fix |
+|-------|-----|
+| Edit form shown on view | Added `_isViewMode` flag, separate `_buildViewMode()` UI |
+| Missing PDF params | Added `getNominees()` and `generateBookingNumber()` calls |
+
+**View Mode UI:**
+- Read-only Customer Info card (name, phone, email)
+- Read-only Plot Details card (plot number, block, sector, location)
+- Read-only Dimensions & Pricing card (length, breadth, area, rate, total)
+- Read-only Payment Terms card (down payment, EMI months, EMI amount, token)
+- Read-only Dates card (booking date, token date)
+- Remarks card (if available)
+- Print button → Opens booking PDF
+- Share button → Shares booking PDF
+- Delete Booking button → Confirmation → Delete
 
 ### Build Status
 - **APK:** Built successfully

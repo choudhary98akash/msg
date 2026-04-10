@@ -6,6 +6,8 @@ import '../models/id_proof_model.dart';
 import '../models/booking_model.dart';
 import '../models/payment_model.dart';
 import '../models/quotation_model.dart';
+import '../models/ledger_party_model.dart';
+import '../models/ledger_transaction_model.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -164,6 +166,38 @@ class DatabaseService {
         FOREIGN KEY (customer_id) REFERENCES customers(id)
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE ledger_party (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        party_type TEXT NOT NULL,
+        opening_balance REAL DEFAULT 0,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE ledger_transaction (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        party_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        remark TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (party_id) REFERENCES ledger_party(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+        'CREATE INDEX idx_ledger_party_type ON ledger_party(party_type)');
+    await db.execute(
+        'CREATE INDEX idx_ledger_transaction_party ON ledger_transaction(party_id)');
+    await db.execute(
+        'CREATE INDEX idx_ledger_transaction_date ON ledger_transaction(date)');
   }
 
   Future<int> insertCustomer(CustomerModel customer) async {
@@ -225,9 +259,7 @@ class DatabaseService {
     final db = await database;
     final result = await db.query(
       'customers',
-      where: excludeId != null
-          ? 'phone = ? AND id != ?'
-          : 'phone = ?',
+      where: excludeId != null ? 'phone = ? AND id != ?' : 'phone = ?',
       whereArgs: excludeId != null ? [phone, excludeId] : [phone],
       limit: 1,
     );
@@ -385,17 +417,23 @@ class DatabaseService {
   Future<Map<String, int>> getDashboardStats() async {
     final db = await database;
     final customerCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM customers'),
-    ) ?? 0;
+          await db.rawQuery('SELECT COUNT(*) FROM customers'),
+        ) ??
+        0;
     final bookingCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM plot_bookings WHERE status = "active"'),
-    ) ?? 0;
+          await db.rawQuery(
+              'SELECT COUNT(*) FROM plot_bookings WHERE status = "active"'),
+        ) ??
+        0;
     final paymentCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM payments'),
-    ) ?? 0;
+          await db.rawQuery('SELECT COUNT(*) FROM payments'),
+        ) ??
+        0;
     final quotationCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM quotations WHERE status = "pending"'),
-    ) ?? 0;
+          await db.rawQuery(
+              'SELECT COUNT(*) FROM quotations WHERE status = "pending"'),
+        ) ??
+        0;
 
     return {
       'customers': customerCount,
@@ -422,20 +460,21 @@ class DatabaseService {
     final db = await database;
     final year = DateTime.now().year;
     final prefix = 'REC-$year-';
-    
+
     final result = await db.rawQuery('''
       SELECT receipt_number FROM payments
       WHERE receipt_number LIKE ?
       ORDER BY id DESC LIMIT 1
     ''', ['$prefix%']);
-    
+
     if (result.isEmpty) {
       return '$prefix${1.toString().padLeft(4, '0')}';
     }
-    
+
     final lastNumber = int.tryParse(
-      result.first['receipt_number'].toString().replaceAll(prefix, ''),
-    ) ?? 0;
+          result.first['receipt_number'].toString().replaceAll(prefix, ''),
+        ) ??
+        0;
     return '$prefix${(lastNumber + 1).toString().padLeft(4, '0')}';
   }
 
@@ -443,16 +482,16 @@ class DatabaseService {
     final db = await database;
     final year = DateTime.now().year;
     final prefix = 'BK-$year-';
-    
+
     final result = await db.rawQuery('''
       SELECT id FROM plot_bookings
       ORDER BY id DESC LIMIT 1
     ''');
-    
+
     if (result.isEmpty) {
       return '$prefix${1.toString().padLeft(4, '0')}';
     }
-    
+
     final lastId = result.first['id'] as int;
     return '$prefix${(lastId + 1).toString().padLeft(4, '0')}';
   }
@@ -461,16 +500,16 @@ class DatabaseService {
     final db = await database;
     final year = DateTime.now().year;
     final prefix = 'QT-$year-';
-    
+
     final result = await db.rawQuery('''
       SELECT id FROM quotations
       ORDER BY id DESC LIMIT 1
     ''');
-    
+
     if (result.isEmpty) {
       return '$prefix${1.toString().padLeft(4, '0')}';
     }
-    
+
     final lastId = result.first['id'] as int;
     return '$prefix${(lastId + 1).toString().padLeft(4, '0')}';
   }
@@ -506,5 +545,173 @@ class DatabaseService {
   Future<int> deleteQuotation(int id) async {
     final db = await database;
     return await db.delete('quotations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> insertLedgerParty(LedgerParty party) async {
+    final db = await database;
+    return await db.insert('ledger_party', party.toMap()..remove('id'));
+  }
+
+  Future<List<LedgerParty>> getAllLedgerParties() async {
+    final db = await database;
+    final maps = await db.query('ledger_party', orderBy: 'created_at DESC');
+    return maps.map((map) => LedgerParty.fromMap(map)).toList();
+  }
+
+  Future<LedgerParty?> getLedgerParty(int id) async {
+    final db = await database;
+    final maps =
+        await db.query('ledger_party', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    return LedgerParty.fromMap(maps.first);
+  }
+
+  Future<List<LedgerParty>> getLedgerPartiesByType(String partyType) async {
+    final db = await database;
+    final maps = await db.query(
+      'ledger_party',
+      where: 'party_type = ?',
+      whereArgs: [partyType],
+      orderBy: 'created_at DESC',
+    );
+    return maps.map((map) => LedgerParty.fromMap(map)).toList();
+  }
+
+  Future<List<LedgerParty>> searchLedgerParties(String query) async {
+    final db = await database;
+    final maps = await db.query(
+      'ledger_party',
+      where: 'name LIKE ? OR phone LIKE ?',
+      whereArgs: ['%$query%', '%$query%'],
+      orderBy: 'created_at DESC',
+    );
+    return maps.map((map) => LedgerParty.fromMap(map)).toList();
+  }
+
+  Future<int> updateLedgerParty(LedgerParty party) async {
+    final db = await database;
+    return await db.update(
+      'ledger_party',
+      party.toMap(),
+      where: 'id = ?',
+      whereArgs: [party.id],
+    );
+  }
+
+  Future<int> deleteLedgerParty(int id) async {
+    final db = await database;
+    await db
+        .delete('ledger_transaction', where: 'party_id = ?', whereArgs: [id]);
+    return await db.delete('ledger_party', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<bool> ledgerPartyHasTransactions(int partyId) async {
+    final db = await database;
+    final result = await db.query(
+      'ledger_transaction',
+      where: 'party_id = ?',
+      whereArgs: [partyId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<int> insertLedgerTransaction(LedgerTransaction transaction) async {
+    final db = await database;
+    return await db.insert(
+        'ledger_transaction', transaction.toMap()..remove('id'));
+  }
+
+  Future<List<LedgerTransaction>> getLedgerTransactions(int partyId) async {
+    final db = await database;
+    final maps = await db.query(
+      'ledger_transaction',
+      where: 'party_id = ?',
+      whereArgs: [partyId],
+      orderBy: 'date DESC, created_at DESC',
+    );
+    return maps.map((map) => LedgerTransaction.fromMap(map)).toList();
+  }
+
+  Future<LedgerTransaction?> getLedgerTransaction(int id) async {
+    final db = await database;
+    final maps =
+        await db.query('ledger_transaction', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    return LedgerTransaction.fromMap(maps.first);
+  }
+
+  Future<int> updateLedgerTransaction(LedgerTransaction transaction) async {
+    final db = await database;
+    return await db.update(
+      'ledger_transaction',
+      transaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [transaction.id],
+    );
+  }
+
+  Future<int> deleteLedgerTransaction(int id) async {
+    final db = await database;
+    return await db
+        .delete('ledger_transaction', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getTotalGiveForParty(int partyId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM ledger_transaction WHERE party_id = ? AND type = ?',
+      [partyId, 'give'],
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<double> getTotalTakeForParty(int partyId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM ledger_transaction WHERE party_id = ? AND type = ?',
+      [partyId, 'take'],
+    );
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<LedgerSummary> getLedgerSummary() async {
+    final db = await database;
+
+    final debtors = await db
+        .query('ledger_party', where: 'party_type = ?', whereArgs: ['debtor']);
+    final creditors = await db.query('ledger_party',
+        where: 'party_type = ?', whereArgs: ['creditor']);
+
+    double totalYouWillGet = 0;
+    double totalYouWillGive = 0;
+
+    for (var debtor in debtors) {
+      final partyId = debtor['id'] as int;
+      final openingBalance =
+          (debtor['opening_balance'] as num?)?.toDouble() ?? 0;
+      final totalGive = await getTotalGiveForParty(partyId);
+      final totalTake = await getTotalTakeForParty(partyId);
+      final balance = openingBalance + totalTake - totalGive;
+      if (balance > 0) totalYouWillGet += balance;
+    }
+
+    for (var creditor in creditors) {
+      final partyId = creditor['id'] as int;
+      final openingBalance =
+          (creditor['opening_balance'] as num?)?.toDouble() ?? 0;
+      final totalGive = await getTotalGiveForParty(partyId);
+      final totalTake = await getTotalTakeForParty(partyId);
+      final balance = openingBalance + totalGive - totalTake;
+      if (balance > 0) totalYouWillGive += balance;
+    }
+
+    return LedgerSummary(
+      totalYouWillGet: totalYouWillGet,
+      totalYouWillGive: totalYouWillGive,
+      netBalance: totalYouWillGet - totalYouWillGive,
+      debtorCount: debtors.length,
+      creditorCount: creditors.length,
+    );
   }
 }

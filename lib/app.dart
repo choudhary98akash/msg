@@ -5,6 +5,7 @@ import 'screens/customer/customer_list_screen.dart';
 import 'screens/booking/booking_list_screen.dart';
 import 'screens/payment/payment_list_screen.dart';
 import 'screens/quotation/quotation_list_screen.dart';
+import 'screens/ledger/ledger_dashboard.dart';
 
 class MsGroupPropertiesApp extends StatelessWidget {
   const MsGroupPropertiesApp({super.key});
@@ -36,6 +37,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const BookingListScreen(),
     const PaymentListScreen(),
     const QuotationListScreen(),
+    const LedgerDashboard(),
   ];
 
   @override
@@ -90,6 +92,12 @@ class _MainNavigationState extends State<MainNavigation> {
                 selectedIcon:
                     Icon(Icons.description, color: AppTheme.primaryColor),
                 label: 'Quotations',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: Icon(Icons.account_balance_wallet,
+                    color: AppTheme.primaryColor),
+                label: 'Ledger',
               ),
             ],
           ),

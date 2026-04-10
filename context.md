@@ -1,129 +1,73 @@
 # Session Context - M.S. Group Properties
 
 **Date:** Friday, March 20, 2026 (Session 2)
-**Last Updated:** Thursday, March 26, 2026 (Session 3 - UI Overflow Fixes & View Mode)
+**Last Updated:** Friday, March 27, 2026 (Session 6 - Quotation Cleanup & Bidirectional Down Payment)
 
 ---
 
-## What Was Done
+## Session 6 - Mar 27, 2026
 
-### 1. UI Overhaul Request
-- User wanted to improve the UI because "tabs heading are not visible, not much clear ui"
-- Wanted comprehensive overhaul, not minimal fixes
-- User preferences specified:
-  - **Theme:** Orange and White
-  - **Design:** Feature-rich with more details
-  - **No status colors**
-  - **Solid orange** (not gradients except welcome header)
+### Changes Made
 
-### 2. Questions Asked & Answers
-User was asked about:
-- Navigation icons: Orange on white background (chose recommended option)
-- Card style: Full-width cards with dividers (chose recommended)
-- Color style: Solid orange with white (chose recommended)
-- Search feature: Add search to all lists (chose recommended)
+#### 1. Quotation Cleanup
+- Removed all status tracking (Pending/Accepted/Rejected/Expired)
+- Removed TabBar from quotation list
+- Removed status badge and expiry display from quotation cards
+- Simplified quotation cards to show only: Customer, Plot, Area, Rate, Total Price
+- Single-column layout for Plot Details and Dimensions cards in detail screen
+- Quotations are now simple saved records - just create, view, share, delete
 
-### 3. Files Modified
+#### 2. Share Quote Screenshot Feature
+"Share Quote" button on quotation detail screen that:
+- Captures the **entire scrollable page** (top to bottom)
+- Excludes the Share button itself from capture
+- Creates a PDF matching exact content dimensions
+- Opens share dialog with PDF file
 
-| Screen | Changes |
-|--------|---------|
-| Dashboard | Welcome header with gradient, enhanced stats, financial overview, quick actions |
-| Customer List | Search bar, enhanced cards with avatar |
-| Customer Detail | Profile header, contact chips, booking progress bars |
-| Add Customer | Section headers with icons |
-| Payment List | Search added, enhanced cards with payment type icons |
-| Add Payment | Section headers, enhanced booking info |
-| Quotation List | Search added, feature-rich cards |
-| Quotation Detail | Enhanced status cards with colored containers |
-| Booking Form | Section headers, card-based layout |
-| All Forms | Standardized styling with consistent patterns |
+**Implementation:**
+| Component | Details |
+|-----------|---------|
+| Capture Method | `RepaintBoundary` + `GlobalKey` + `RenderRepaintBoundary.toImage()` |
+| PDF Generation | `pdf` package with exact image dimensions |
+| Share | `Printing.sharePdf()` |
+| Quality | 3x pixel ratio for crisp output |
 
-### 4. Theme Configuration
-- Primary color changed to Orange (#FF6600)
-- Navigation bar: White background, orange icons for selected
-- Card elevation increased to 4px
-- Typography hierarchy added
-- TabBarTheme, NavigationBarTheme, CardTheme all configured
+#### 3. Bidirectional Down Payment
+Both Down Payment % and Amount fields are now editable:
+- Type in % → Amount auto-calculates
+- Type in Amount → % auto-calculates
+- Amount capped at Total Price (100%)
+- % capped at 100% with validation error
+- EMI stays as is (months editable, amount calculated)
 
-### 5. Build Issues Encountered
-- **JAVA_HOME error**: Fixed by setting correct path `C:\Program Files\Java\jdk-22`
-- **relationPhone error**: Field doesn't exist in CustomerModel, removed from customer_detail_screen.dart
+**Flow:**
+```
+Tap "Share Quote" 
+  → Loading dialog ("Creating PDF...")
+  → Capture full scrollable content
+  → Create PDF with exact content size
+  → Open system share dialog with PDF
+```
 
-### 6. Build Success
-- APK built successfully
-- Location: `build\app\outputs\flutter-apk\app-debug.apk`
+### Files Modified
+| File | Changes |
+|------|---------|
+| `quotation_detail_screen.dart` | Removed status, single-column cards, share screenshot |
+| `quotation_list_screen.dart` | Removed TabBar, status tabs, status filtering |
+| `quotation_form_screen.dart` | Bidirectional down payment calculation |
 
-### 7. Documentation
-- `install.md` created with build guide
-- `setup_documentation.md` updated with UI details (in parent directory)
-- `context.md` created for session continuity
+### Packages Used
+- `pdf: ^3.11.1` (already in project)
+- `printing: ^5.13.3` (already in project)
+- `dart:ui` (Flutter)
+- `flutter/rendering.dart`
 
-### 8. Git
-- Committed: "improved ui fixes"
-- Pushed to: https://github.com/choudhary98akash/msg.git
-
----
-
-## UI Overflow Fixes & View Mode (Session 3 - Mar 26, 2026)
-
-### Issues Identified
-User reported screen overflow issues on:
-- Dashboard overview tabs
-- Payment screens
-- Clicking payment/booking items should show view-only mode
-
-### Dashboard Overflow Fixes
-
-#### Dashboard Screen (`dashboard_screen.dart`)
-| Fix | Details |
-|-----|---------|
-| Stats Grid | Replaced `LayoutBuilder` with `MediaQuery`, responsive `childAspectRatio` (1.4 wide, 1.2 narrow) |
-| Stat Cards | Reduced padding to 12px, icon size to 20px, font sizes (28→24, 11→10) |
-| Activity Amount | Wrapped in `Flexible` with `overflow: ellipsis` |
-| Customer Name | Added `maxLines: 1` + `overflow: ellipsis` |
-
-### Payment View Mode Fix
-
-#### Add Payment Screen (`add_payment_screen.dart`)
-| Issue | Fix |
-|-------|-----|
-| Dropdown error on view | Removed active booking filter, load all bookings |
-| Edit form shown on view | Added `_isViewMode` flag, separate `_buildViewMode()` UI |
-| Async loading issue | Added `await` before `_selectBooking()` |
-
-**View Mode UI:**
-- Read-only booking info card
-- Read-only payment details card (Type, Amount, Date, Mode, Bank details, Receipt)
-- Print button → Opens PDF directly
-- Share button → Shares PDF
-- Delete Payment button → Confirmation → Delete
-
-### Booking View Mode Fix
-
-#### Booking Form Screen (`booking_form_screen.dart`)
-| Issue | Fix |
-|-------|-----|
-| Edit form shown on view | Added `_isViewMode` flag, separate `_buildViewMode()` UI |
-| Missing PDF params | Added `getNominees()` and `generateBookingNumber()` calls |
-
-**View Mode UI:**
-- Read-only Customer Info card (name, phone, email)
-- Read-only Plot Details card (plot number, block, sector, location)
-- Read-only Dimensions & Pricing card (length, breadth, area, rate, total)
-- Read-only Payment Terms card (down payment, EMI months, EMI amount, token)
-- Read-only Dates card (booking date, token date)
-- Remarks card (if available)
-- Print button → Opens booking PDF
-- Share button → Shares booking PDF
-- Delete Booking button → Confirmation → Delete
-
-### Build Status
-- **APK:** Built successfully
-- **Location:** `build\app\outputs\flutter-apk\app-debug.apk`
+### Removed
+- `screenshot: ^3.0.0` (temporary package removed)
 
 ---
 
-## Quotation Cleanup (Session 5 - Mar 27, 2026)
+## Session 5 - Quotation Cleanup (Earlier Today)
 
 ### Changes Made
 - Removed all status tracking (Pending/Accepted/Rejected/Expired)
@@ -148,7 +92,7 @@ NO status tracking, NO accept/reject
 
 ---
 
-## Share Quote Screenshot Feature (Session 4 - Mar 27, 2026)
+## Session 4 - Share Quote Screenshot (Earlier Today)
 
 ### Feature Added
 "Share Quote" button on quotation detail screen that:
@@ -165,11 +109,6 @@ NO status tracking, NO accept/reject
 | Share | `Printing.sharePdf()` |
 | Quality | 3x pixel ratio for crisp output |
 
-### Files Modified
-| File | Changes |
-|------|---------|
-| `quotation_detail_screen.dart` | Restructured body, added full-page capture, PDF generation |
-
 ### Flow
 ```
 Tap "Share Quote" 
@@ -179,52 +118,63 @@ Tap "Share Quote"
   → Open system share dialog with PDF
 ```
 
-### Packages Used
-- `pdf: ^3.11.1` (already in project)
-- `printing: ^5.13.3` (already in project)
-- `dart:ui` (Flutter)
-- `flutter/rendering.dart`
+---
 
-### Removed
-- `screenshot: ^3.0.0` (temporary package removed)
+## Session 3 - UI Overflow Fixes & View Mode (Mar 26, 2026)
+
+### Issues Identified
+- Dashboard overview tabs overflow
+- Payment screens overflow
+- Clicking payment/booking items should show view-only mode
+
+### Dashboard Overflow Fixes
+| Fix | Details |
+|-----|---------|
+| Stats Grid | Replaced `LayoutBuilder` with `MediaQuery`, responsive `childAspectRatio` |
+| Stat Cards | Reduced padding, icon size, font sizes |
+| Activity Amount | Wrapped in `Flexible` with `overflow: ellipsis` |
+
+### Payment & Booking View Mode
+- Added `_isViewMode` flag
+- Separate `_buildViewMode()` UI for read-only display
+- Print button → Opens PDF directly
+- Share button → Shares PDF
+- Delete button → Confirmation → Delete
 
 ---
 
-## Navigation & Button Fixes (Session 2 - Mar 20, 2026)
+## Session 2 - Navigation & Button Fixes (Mar 20, 2026)
 
 ### Issues Fixed
 
-#### 1. Dashboard Quick Actions - Wrong Navigation Targets
+#### Dashboard Quick Actions - Wrong Navigation Targets
 | Button | Before | After |
 |--------|--------|-------|
 | Add Customer | CustomerListScreen | **AddCustomerScreen** |
-| New Booking | BookingFormScreen | BookingFormScreen (correct) |
 | Add Payment | PaymentListScreen | **AddPaymentScreen** |
 | Create Quote | QuotationListScreen | **QuotationFormScreen** |
 
-#### 2. Dashboard Stats - Empty Callback
+#### Dashboard Stats - Empty Callback
 | Card | Before | After |
 |------|--------|-------|
-| Active Bookings | `() {}` (did nothing) | **BookingListScreen** |
+| Active Bookings | `() {}` | **BookingListScreen** |
 
-#### 3. Bottom Navigation - Disabled Tab
+#### Bottom Navigation - Disabled Tab
 | Tab | Before | After |
 |-----|--------|-------|
-| Booking (index 2) | `if (index != 2)` blocked | **Enabled** |
+| Booking (index 2) | blocked | **Enabled** |
 
-#### 4. Null Safety Fixes
-- `customer_detail_screen.dart`: Added null check for Edit button
-- `quotation_detail_screen.dart`: Added null check for missing quotation
-- `add_payment_screen.dart`: Added null check for PDF operations
+---
 
-### Files Modified
-1. **booking_list_screen.dart** - CREATED NEW
-2. **dashboard_screen.dart** - Fixed 4 button navigations, added imports
-3. **app.dart** - Enabled booking tab, added BookingListScreen import
-4. **customer_detail_screen.dart** - Null safety on edit button
-5. **quotation_detail_screen.dart** - Null safety on quotation load
-6. **add_payment_screen.dart** - Null safety on PDF operations
-7. **context.md** - Updated with fixes
+## Session 1 - UI Overhaul (Mar 20, 2026)
+
+### User Preferences
+- **Theme:** Orange (#FF6600) & White
+- **Design:** Feature-rich with more details
+- **Card Style:** Full-width with dividers, soft shadows
+- **Navigation:** Orange icons on white background
+- **Search:** On Customer, Payment, and Quotation lists
+- **No gradients** except welcome header gradient
 
 ---
 
@@ -236,6 +186,7 @@ Tap "Share Quote"
 - **Search:** On Customer, Payment, and Quotation lists
 - **Colors:** Minimal, no status colors on list items
 - **No gradients** except welcome header gradient
+- **Quotations:** Simple saved records - create, view, share, delete only
 
 ---
 
@@ -273,5 +224,3 @@ git add . && git commit -m "message" && git push origin main
 ---
 
 ## End of Session
-
-

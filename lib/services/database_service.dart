@@ -29,9 +29,38 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ledger_transaction (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          party_id INTEGER NOT NULL,
+          type TEXT NOT NULL,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          remark TEXT,
+          proof_images TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (party_id) REFERENCES ledger_party(id) ON DELETE CASCADE
+        )
+      ''');
+
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_ledger_transaction_party_v2 
+        ON ledger_transaction(party_id)
+      ''');
+
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_ledger_transaction_date_v2 
+        ON ledger_transaction(date)
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -187,6 +216,7 @@ class DatabaseService {
         amount REAL NOT NULL,
         date TEXT NOT NULL,
         remark TEXT,
+        proof_images TEXT,
         created_at TEXT NOT NULL,
         FOREIGN KEY (party_id) REFERENCES ledger_party(id) ON DELETE CASCADE
       )

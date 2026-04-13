@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'ledger_party_model.dart';
 
 class LedgerTransaction {
@@ -7,7 +8,10 @@ class LedgerTransaction {
   double amount;
   DateTime date;
   String? remark;
+  List<String>? proofImages;
   DateTime createdAt;
+
+  static const int maxProofImages = 4;
 
   LedgerTransaction({
     this.id,
@@ -16,6 +20,7 @@ class LedgerTransaction {
     required this.amount,
     DateTime? date,
     this.remark,
+    this.proofImages,
     DateTime? createdAt,
   })  : date = date ?? DateTime.now(),
         createdAt = createdAt ?? DateTime.now();
@@ -31,11 +36,23 @@ class LedgerTransaction {
       'amount': amount,
       'date': date.toIso8601String(),
       'remark': remark,
+      'proof_images': proofImages != null ? jsonEncode(proofImages) : null,
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory LedgerTransaction.fromMap(Map<String, dynamic> map) {
+    List<String>? images;
+    final proofImagesData = map['proof_images'];
+    if (proofImagesData != null && proofImagesData.toString().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(proofImagesData as String);
+        if (decoded is List) {
+          images = decoded.cast<String>();
+        }
+      } catch (_) {}
+    }
+
     return LedgerTransaction(
       id: map['id'] as int?,
       partyId: map['party_id'] as int,
@@ -43,6 +60,7 @@ class LedgerTransaction {
       amount: (map['amount'] as num).toDouble(),
       date: DateTime.parse(map['date'] as String),
       remark: map['remark'] as String?,
+      proofImages: images,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
@@ -54,6 +72,7 @@ class LedgerTransaction {
     double? amount,
     DateTime? date,
     String? remark,
+    List<String>? proofImages,
     DateTime? createdAt,
   }) {
     return LedgerTransaction(
@@ -63,12 +82,28 @@ class LedgerTransaction {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       remark: remark ?? this.remark,
+      proofImages: proofImages ?? this.proofImages,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   bool get isGive => type == typeGive;
   bool get isTake => type == typeTake;
+
+  bool get canAddProofImage => (proofImages?.length ?? 0) < maxProofImages;
+  int get proofImageCount => proofImages?.length ?? 0;
+
+  bool addProofImage(String path) {
+    if (!canAddProofImage) return false;
+    proofImages ??= [];
+    proofImages!.add(path);
+    return true;
+  }
+
+  bool removeProofImage(String path) {
+    if (proofImages == null || proofImages!.isEmpty) return false;
+    return proofImages!.remove(path);
+  }
 }
 
 class LedgerPartyWithBalance {

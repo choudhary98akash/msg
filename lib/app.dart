@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'config/theme.dart';
 import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/customer/customer_list_screen.dart';
-import 'screens/booking/booking_list_screen.dart';
-import 'screens/payment/payment_list_screen.dart';
-import 'screens/quotation/quotation_list_screen.dart';
-import 'screens/ledger/ledger_dashboard.dart';
+import 'screens/customers/customers_wrapper_screen.dart';
+import 'screens/finance/finance_wrapper_screen.dart';
 
 class MsGroupPropertiesApp extends StatelessWidget {
   const MsGroupPropertiesApp({super.key});
@@ -25,20 +22,80 @@ class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<MainNavigation> createState() => MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const CustomerListScreen(),
-    const BookingListScreen(),
-    const PaymentListScreen(),
-    const QuotationListScreen(),
-    const LedgerDashboard(),
-  ];
+  final GlobalKey<CustomersWrapperScreenState> _customersKey = GlobalKey();
+  final GlobalKey<FinanceWrapperScreenState> _financeKey = GlobalKey();
+
+  late final List<Widget> _screens;
+
+  MainNavigationState() {
+    _screens = [
+      const DashboardScreen(),
+      CustomersWrapperScreen(key: _customersKey),
+      FinanceWrapperScreen(key: _financeKey),
+    ];
+  }
+
+  static MainNavigationState? of(BuildContext context) {
+    final state = context.findAncestorStateOfType<MainNavigationState>();
+    return state;
+  }
+
+  void switchToTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  void switchToCustomersTab() {
+    setState(() {
+      _currentIndex = 1;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _customersKey.currentState?.switchToSubTab(0);
+    });
+  }
+
+  void switchToBookingsTab() {
+    setState(() {
+      _currentIndex = 1;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _customersKey.currentState?.switchToSubTab(1);
+    });
+  }
+
+  void switchToPaymentsTab() {
+    setState(() {
+      _currentIndex = 2;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _financeKey.currentState?.switchToSubTab(0);
+    });
+  }
+
+  void switchToQuotationsTab() {
+    setState(() {
+      _currentIndex = 2;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _financeKey.currentState?.switchToSubTab(1);
+    });
+  }
+
+  void switchToLedgerTab() {
+    setState(() {
+      _currentIndex = 2;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _financeKey.currentState?.switchToSubTab(2);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,40 +121,23 @@ class _MainNavigationState extends State<MainNavigation> {
             onDestinationSelected: (index) {
               setState(() => _currentIndex = index);
             },
-            destinations: [
+            destinations: const [
               NavigationDestination(
-                icon: const Icon(Icons.dashboard_outlined),
+                icon: Icon(Icons.dashboard_outlined),
                 selectedIcon:
                     Icon(Icons.dashboard, color: AppTheme.primaryColor),
                 label: 'Dashboard',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.people_outline),
+                icon: Icon(Icons.people_outline),
                 selectedIcon: Icon(Icons.people, color: AppTheme.primaryColor),
                 label: 'Customers',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.add_home_outlined),
+                icon: Icon(Icons.currency_rupee_outlined),
                 selectedIcon:
-                    Icon(Icons.add_home, color: AppTheme.primaryColor),
-                label: 'Booking',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.payment_outlined),
-                selectedIcon: Icon(Icons.payment, color: AppTheme.primaryColor),
-                label: 'Payments',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.description_outlined),
-                selectedIcon:
-                    Icon(Icons.description, color: AppTheme.primaryColor),
-                label: 'Quotations',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet,
-                    color: AppTheme.primaryColor),
-                label: 'Ledger',
+                    Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
+                label: 'Finance',
               ),
             ],
           ),

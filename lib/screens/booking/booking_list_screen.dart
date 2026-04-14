@@ -9,17 +9,20 @@ import '../../config/theme.dart';
 import 'booking_form_screen.dart';
 
 class BookingListScreen extends StatefulWidget {
-  const BookingListScreen({super.key});
+  final bool inStandaloneMode;
+
+  const BookingListScreen({
+    super.key,
+    this.inStandaloneMode = true,
+  });
 
   @override
   State<BookingListScreen> createState() => _BookingListScreenState();
 }
 
-class _BookingListScreenState extends State<BookingListScreen>
-    with SingleTickerProviderStateMixin {
+class _BookingListScreenState extends State<BookingListScreen> {
   final DatabaseService _dbService = DatabaseService();
   final TextEditingController _searchController = TextEditingController();
-  late TabController _tabController;
 
   List<BookingModel> _allBookings = [];
   List<BookingModel> _filteredBookings = [];
@@ -32,22 +35,13 @@ class _BookingListScreenState extends State<BookingListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _loadBookings();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onTabChanged() {
-    final statuses = ['all', 'active', 'completed'];
-    setState(() => _filterStatus = statuses[_tabController.index]);
-    _filterBookings();
   }
 
   void _filterBookings() {
@@ -149,18 +143,56 @@ class _BookingListScreenState extends State<BookingListScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bookings'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(130),
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _buildChip('All', 'all'),
+          const SizedBox(width: 8),
+          _buildChip('Active', 'active'),
+          const SizedBox(width: 8),
+          _buildChip('Completed', 'completed'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, String value) {
+    final isSelected = _filterStatus == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) {
+        setState(() {
+          _filterStatus = value;
+        });
+        _filterBookings();
+      },
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+      checkmarkColor: AppTheme.primaryColor,
+      labelStyle: TextStyle(
+        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 13,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      children: [
+        // Search and Filter
+        Container(
+          color: Colors.white,
           child: Column(
             children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (value) {
@@ -192,89 +224,86 @@ class _BookingListScreenState extends State<BookingListScreen>
                   ),
                 ),
               ),
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 13),
-                  indicatorColor: AppTheme.primaryColor,
-                  indicatorWeight: 3,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabs: const [
-                    Tab(text: 'All'),
-                    Tab(text: 'Active'),
-                    Tab(text: 'Completed'),
-                  ],
-                ),
-              ),
+              _buildFilterChips(),
             ],
           ),
         ),
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_filteredBookings.length} ${_filteredBookings.length == 1 ? 'Booking' : 'Bookings'}',
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+        // Stats row
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_filteredBookings.length} ${_filteredBookings.length == 1 ? 'Booking' : 'Bookings'}',
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                const Spacer(),
-                if (!_isLoading && _filteredBookings.isNotEmpty)
-                  Text(
-                    'Total: ${Formatters.formatCurrency(_filteredBookings.fold<double>(0, (sum, b) => sum + b.totalPrice))}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+              ),
+              const Spacer(),
+              if (!_isLoading && _filteredBookings.isNotEmpty)
+                Text(
+                  'Total: ${Formatters.formatCurrency(_filteredBookings.fold<double>(0, (sum, b) => sum + b.totalPrice))}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredBookings.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadBookings,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 80),
-                          itemCount: _filteredBookings.length,
-                          itemBuilder: (context, index) {
-                            final booking = _filteredBookings[index];
-                            return _buildBookingCard(booking);
-                          },
-                        ),
+        ),
+        // List
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredBookings.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadBookings,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 80),
+                        itemCount: _filteredBookings.length,
+                        itemBuilder: (context, index) {
+                          final booking = _filteredBookings[index];
+                          return _buildBookingCard(booking);
+                        },
                       ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const BookingFormScreen()),
-        ).then((_) => _loadBookings()),
-        child: const Icon(Icons.add),
-      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.inStandaloneMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Bookings'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadBookings,
+            ),
+          ],
+        ),
+        body: _buildContent(),
+      );
+    }
+
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: _buildContent(),
     );
   }
 

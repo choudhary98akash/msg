@@ -9,17 +9,20 @@ import '../../config/theme.dart';
 import 'add_payment_screen.dart';
 
 class PaymentListScreen extends StatefulWidget {
-  const PaymentListScreen({super.key});
+  final bool inStandaloneMode;
+
+  const PaymentListScreen({
+    super.key,
+    this.inStandaloneMode = true,
+  });
 
   @override
   State<PaymentListScreen> createState() => _PaymentListScreenState();
 }
 
-class _PaymentListScreenState extends State<PaymentListScreen>
-    with SingleTickerProviderStateMixin {
+class _PaymentListScreenState extends State<PaymentListScreen> {
   final DatabaseService _dbService = DatabaseService();
   final TextEditingController _searchController = TextEditingController();
-  late TabController _tabController;
 
   List<PaymentModel> _allPayments = [];
   List<PaymentModel> _filteredPayments = [];
@@ -32,22 +35,13 @@ class _PaymentListScreenState extends State<PaymentListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _loadPayments();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onTabChanged() {
-    final types = ['all', 'token', 'down payment', 'emi', 'final payment'];
-    setState(() => _filterType = types[_tabController.index]);
-    _filterPayments();
   }
 
   void _filterPayments() {
@@ -148,18 +142,58 @@ class _PaymentListScreenState extends State<PaymentListScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payments'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(130),
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _buildChip('All', 'all'),
+          const SizedBox(width: 8),
+          _buildChip('Token', 'token'),
+          const SizedBox(width: 8),
+          _buildChip('Down', 'down payment'),
+          const SizedBox(width: 8),
+          _buildChip('EMI', 'emi'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, String value) {
+    final isSelected = _filterType == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) {
+        setState(() {
+          _filterType = value;
+        });
+        _filterPayments();
+      },
+      backgroundColor: Colors.grey.shade100,
+      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+      checkmarkColor: AppTheme.primaryColor,
+      labelStyle: TextStyle(
+        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade700,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 13,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      children: [
+        // Search and Filter
+        Container(
+          color: Colors.white,
           child: Column(
             children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (value) {
@@ -191,90 +225,86 @@ class _PaymentListScreenState extends State<PaymentListScreen>
                   ),
                 ),
               ),
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 13),
-                  indicatorColor: AppTheme.primaryColor,
-                  indicatorWeight: 3,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabs: const [
-                    Tab(text: 'All'),
-                    Tab(text: 'Token'),
-                    Tab(text: 'Down Payment'),
-                    Tab(text: 'EMI'),
-                  ],
-                ),
-              ),
+              _buildFilterChips(),
             ],
           ),
         ),
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_filteredPayments.length} ${_filteredPayments.length == 1 ? 'Payment' : 'Payments'}',
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+        // Stats row
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_filteredPayments.length} ${_filteredPayments.length == 1 ? 'Payment' : 'Payments'}',
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                const Spacer(),
-                if (!_isLoading && _filteredPayments.isNotEmpty)
-                  Text(
-                    'Total: ${Formatters.formatCurrency(_filteredPayments.fold<double>(0, (sum, p) => sum + p.amount))}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+              ),
+              const Spacer(),
+              if (!_isLoading && _filteredPayments.isNotEmpty)
+                Text(
+                  'Total: ${Formatters.formatCurrency(_filteredPayments.fold<double>(0, (sum, p) => sum + p.amount))}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPayments.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadPayments,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 80),
-                          itemCount: _filteredPayments.length,
-                          itemBuilder: (context, index) {
-                            final payment = _filteredPayments[index];
-                            return _buildPaymentCard(payment);
-                          },
-                        ),
+        ),
+        // List
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredPayments.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadPayments,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 80),
+                        itemCount: _filteredPayments.length,
+                        itemBuilder: (context, index) {
+                          final payment = _filteredPayments[index];
+                          return _buildPaymentCard(payment);
+                        },
                       ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddPaymentScreen()),
-        ).then((_) => _loadPayments()),
-        child: const Icon(Icons.add),
-      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.inStandaloneMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Payments'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadPayments,
+            ),
+          ],
+        ),
+        body: _buildContent(),
+      );
+    }
+
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: _buildContent(),
     );
   }
 

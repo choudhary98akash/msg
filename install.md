@@ -55,7 +55,14 @@ ms_group_properties/
 │   │   ├── customer/
 │   │   ├── booking/
 │   │   ├── payment/
-│   │   └── quotation/
+│   │   ├── quotation/
+│   │   ├── ledger/
+│   │   ├── customers/           # Wrapper screens
+│   │   │   └── customers_wrapper_screen.dart
+│   │   └── finance/            # Wrapper screens
+│   │       └── finance_wrapper_screen.dart
+│   ├── services/
+│   │   ├── ledger_image_service.dart  # Image handling for proof
 │   └── utils/                   # Utilities
 │       ├── formatters.dart
 │       ├── validators.dart
@@ -85,6 +92,8 @@ ms_group_properties/
 | path | ^1.9.0 | Path utilities |
 | flutter_slidable | ^3.1.1 | Swipe actions |
 | signature | ^5.5.0 | Signature capture |
+| flutter_image_compress | ^2.3.0 | Image compression for WebP |
+| uuid | ^4.5.1 | Unique filename generation |
 
 ---
 
@@ -157,6 +166,13 @@ D:\flutter_sdk\bin\flutter.bat build apk --debug
 - Validity period tracking
 - Status management (Pending, Accepted, Expired)
 - PDF generation
+
+### 6. Ledger Management
+- Party management (Debtors/Creditors)
+- Track "You Gave" and "You Took" transactions
+- Proof image attachments (max 4 per transaction)
+- Balance calculation per party
+- PDF statement generation
 
 ---
 
@@ -241,6 +257,78 @@ D:\flutter_sdk\bin\flutter.bat build apk --debug
 - Clicking booking shows view-only mode (not edit form)
 - Read-only display: Customer info, Plot details, Dimensions, Payment terms, Dates, Remarks
 - Actions: Print booking form, Share booking form, Delete Booking
+
+---
+
+## Bottom Navigation Structure
+
+### Current Structure (3 Main Tabs with Segmented Control)
+| Tab | Contains | Internal Tabs |
+|-----|----------|---------------|
+| Dashboard | Dashboard | None |
+| Customers | Customers + Bookings | Segmented Control |
+| Finance | Payments + Quotations + Ledger | Segmented Control |
+
+### Visual Layout
+```
+┌─────────────────────────────────────────────────┐
+│  [Dashboard]  [Customers]  [Finance]             │ ← Main Nav (bottom)
+├─────────────────────────────────────────────────┤
+│  [ Customers │ Bookings ]                        │ ← Segmented Control (top)
+│  [Search.................................]        │
+│  [All] [Active] [Completed]                    │ ← Filter Chips (Bookings)
+│  Content...                                     │
+└─────────────────────────────────────────────────┘
+```
+
+### Wrapper Screens
+| Screen | File | Purpose |
+|--------|------|---------|
+| CustomersWrapper | `screens/customers/customers_wrapper_screen.dart` | Hosts CustomerList + BookingList with SegmentedButton |
+| FinanceWrapper | `screens/finance/finance_wrapper_screen.dart` | Hosts PaymentList + QuotationList + LedgerDashboard with SegmentedButton |
+
+### inStandaloneMode Parameter
+All list screens support `inStandaloneMode` parameter:
+- `inStandaloneMode: true` (default) - Full Scaffold with AppBar, used for direct navigation
+- `inStandaloneMode: false` - Content only, used inside wrapper screens
+
+### Filter Chips
+| Screen | Filter Options |
+|--------|---------------|
+| Bookings | All, Active, Completed |
+| Payments | All, Token, Down, EMI |
+| Ledger | All, Debtors, Creditors |
+
+### Navigation Control
+- `MainNavigationState` in `app.dart` provides methods to switch tabs
+- `switchToCustomersTab()`, `switchToBookingsTab()`, `switchToPaymentsTab()`, `switchToQuotationsTab()`, `switchToLedgerTab()`
+- Dashboard stat cards use these methods to navigate to correct tab/sub-tab
+
+---
+
+## Ledger Proof Images
+
+### Features
+- Attach up to 4 proof images per transaction
+- Capture from camera or select from gallery
+- Images resized to 1200px width
+- Stored as WebP format for smaller file size
+- Full screen viewer with zoom/pan
+- Swipe between multiple images
+
+### Image Storage
+- Location: `{app_docs}/ledger_proofs/`
+- Format: WebP (lossless)
+- Naming: UUID-based for uniqueness
+- Cleanup: Auto-deleted when transaction deleted
+
+### Database Schema
+```sql
+ledger_transaction (
+  ...
+  proof_images TEXT  -- JSON array of file paths
+)
+```
 
 ---
 

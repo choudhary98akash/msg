@@ -1,0 +1,452 @@
+================================================================================
+                    M.S. GROUP PROPERTIES - LEDGER FEATURE
+                         Requirements & Structure
+================================================================================
+
+CREATED: Session 7 (Apr 2026)
+LAST UPDATED: Session 9 (Apr 2026)
+
+================================================================================
+                              FILE STRUCTURE
+================================================================================
+
+lib/
+├── models/
+│   ├── ledger_party_model.dart          # Party/Debtor/Creditor model
+│   ├── ledger_transaction_model.dart    # Transaction model with proof images
+│   └── ledger_models.dart               # Enums, summary classes
+│
+├── services/
+│   ├── ledger_service.dart              # Main ledger business logic
+│   ├── ledger_image_service.dart        # Image pick, resize, compress, save
+│   └── database_service.dart            # DB operations (modified for ledger)
+│
+├── screens/
+│   └── ledger/
+│       ├── ledger_dashboard.dart         # Party list with filters
+│       ├── add_party_screen.dart         # Add/Edit party
+│       ├── party_detail_screen.dart      # Party details + transactions
+│       └── add_transaction_screen.dart   # Add/Edit transaction
+│
+└── utils/
+    ├── ledger_formatters.dart           # Currency, date formatting
+    └── constants.dart                    # Ledger constants
+
+================================================================================
+                           DATABASE SCHEMA
+================================================================================
+
+Table: ledger_parties
+┌─────────────────┬──────────────┬────────────────────────────────────┐
+│ Column          │ Type        │ Notes                              │
+├─────────────────┼──────────────┼────────────────────────────────────┤
+│ id              │ INTEGER      │ PRIMARY KEY, AUTOINCREMENT         │
+│ name            │ TEXT         │ NOT NULL                           │
+│ phone           │ TEXT         │ Optional                           │
+│ type            │ TEXT         │ 'debtor' or 'creditor'            │
+│ opening_balance │ REAL         │ Default 0.0                       │
+│ created_at      │ TEXT         │ ISO8601 timestamp                  │
+│ updated_at      │ TEXT         │ ISO8601 timestamp                  │
+└─────────────────┴──────────────┴────────────────────────────────────┘
+
+Table: ledger_transactions
+┌─────────────────┬──────────────┬────────────────────────────────────┐
+│ Column          │ Type        │ Notes                              │
+├─────────────────┼──────────────┼────────────────────────────────────┤
+│ id              │ INTEGER      │ PRIMARY KEY, AUTOINCREMENT         │
+│ party_id        │ INTEGER      │ FOREIGN KEY → ledger_parties.id   │
+│ type            │ TEXT         │ 'give' (payment out) or 'take'    │
+│ amount          │ REAL         │ Transaction amount                 │
+│ date            │ TEXT         │ Transaction date (ISO8601)         │
+│ remark          │ TEXT         │ Optional notes                     │
+│ proof_images    │ TEXT         │ JSON array of image paths          │
+│ created_at      │ TEXT         │ ISO8601 timestamp                  │
+└─────────────────┴──────────────┴────────────────────────────────────┘
+
+================================================================================
+                         FEATURE REQUIREMENTS
+================================================================================
+
+1. PARTY MANAGEMENT
+   ─────────────────
+   [x] Create party (name, phone, type: debtor/creditor)
+   [x] Edit party details
+   [x] Delete party (only if no transactions)
+   [x] View party balance (calculated from transactions)
+   [x] Search parties by name/phone
+   [x] Filter parties: All / Debtors / Creditors
+
+2. TRANSACTION MANAGEMENT
+   ───────────────────────
+   [x] Add transaction (give/take, amount, date, remark)
+   [x] Edit transaction
+   [x] Delete transaction
+   [x] View transaction history per party
+   [x] Calculate running balance
+
+3. PROOF IMAGES (Proof of Payment)
+   ─────────────────────────────────
+   [x] Attach up to 4 images per transaction
+   [x] Pick from camera
+   [x] Pick from gallery
+   [x] Resize to max 1200px width
+   [x] Compress to WebP format (100% quality)
+   [x] Store in app documents directory
+   [x] View full-screen image
+   [x] Delete individual images
+   [x] Image validation (header check, size limits)
+
+4. DASHBOARD
+   ──────────
+   [x] Total "You Will Get" amount
+   [x] Total "You Will Give" amount
+   [x] Net balance display
+   [x] Party count (debtors/creditors)
+   [x] Quick access to party list
+
+================================================================================
+                          LEDGER IMAGE SERVICE
+================================================================================
+
+CLASS: LedgerImageService
+LOCATION: lib/services/ledger_image_service.dart
+
+METHODS:
+─────────────────────────────────────────────────────────────────────────────
+pickFromCamera() → Future<String?>
+─────────────────────────────────────────────────────────────────────────────
+  Opens camera to capture image
+  Processes and saves to storage
+  Returns file path or null if cancelled
+
+─────────────────────────────────────────────────────────────────────────────
+pickFromGallery() → Future<String?>
+─────────────────────────────────────────────────────────────────────────────
+  Opens gallery to select image
+  Processes and saves to storage
+  Returns file path or null if cancelled
+
+─────────────────────────────────────────────────────────────────────────────
+processAndSave(Uint8List bytes) → Future<String?>
+─────────────────────────────────────────────────────────────────────────────
+  Internal method
+  1. Validates input size (max 10MB)
+  2. Resizes to maxWidth=1200, maxHeight=1200
+  3. Compresses to WebP format
+  4. Falls back to PNG if WebP fails
+  5. Saves to storage directory
+  6. Validates saved file
+  7. Returns file path or null
+
+─────────────────────────────────────────────────────────────────────────────
+validateImage(String path) → Future<bool>
+─────────────────────────────────────────────────────────────────────────────
+  Checks:
+  - File exists
+  - Path is within app directory (security)
+  - File size: 100 bytes to 50MB
+  - Image header magic bytes (JPEG/PNG/WebP)
+
+─────────────────────────────────────────────────────────────────────────────
+deleteImage(String path) → Future<bool>
+─────────────────────────────────────────────────────────────────────────────
+  Deletes single image file
+  Returns true if deleted, false if failed/not found
+
+─────────────────────────────────────────────────────────────────────────────
+deleteImages(List<String> paths) → Future<int>
+─────────────────────────────────────────────────────────────────────────────
+  Deletes multiple images
+  Returns count of successfully deleted files
+
+─────────────────────────────────────────────────────────────────────────────
+markOrphan(String path) → void
+─────────────────────────────────────────────────────────────────────────────
+  Marks image for deferred cleanup
+  Schedules cleanup after 5 seconds
+
+─────────────────────────────────────────────────────────────────────────────
+cleanupOrphanedImages(List<String> validPaths) → Future<void>
+─────────────────────────────────────────────────────────────────────────────
+  Deletes files in storage directory that are not in validPaths
+  Called at app startup
+
+CONSTANTS:
+─────────────────────────────────────────────────────────────────────────────
+maxWidth = 1200                 # Max image dimension
+maxProofImages = 4              # Max images per transaction
+maxInputSizeMB = 10             # Max input image size
+folderName = 'ledger_proofs'    # Storage folder
+minFileSizeBytes = 100          # Min valid file size
+maxFileSizeBytes = 50MB         # Max valid file size
+
+================================================================================
+                         LEDGER TRANSACTION MODEL
+================================================================================
+
+CLASS: LedgerTransaction
+LOCATION: lib/models/ledger_transaction_model.dart
+
+FIELDS:
+─────────────────────────────────────────────────────────────────────────────
+id              : int?           # Database ID
+partyId         : int            # FK to party
+type            : String         # 'give' or 'take'
+amount          : double         # Transaction amount
+date            : DateTime       # Transaction date
+remark          : String?        # Optional notes
+proofImages     : List<String>?  # List of image paths
+createdAt       : DateTime       # Record creation time
+
+CONSTANTS:
+─────────────────────────────────────────────────────────────────────────────
+typeGive = 'give'               # Payment made (you give money)
+typeTake = 'take'               # Payment received (you take money)
+maxProofImages = 4              # Maximum proof images
+
+METHODS:
+─────────────────────────────────────────────────────────────────────────────
+decodeImages(String? json) → List<String>
+  Parses JSON string to list of paths
+  Returns empty list on error
+  Deduplicates results
+
+encodeImages() → String?
+  Converts proofImages to JSON string
+  Returns null if list is empty
+
+canAddProofImage → bool
+  True if proofImages.length < maxProofImages
+
+proofImageCount → int
+  Current image count
+
+addProofImage(String path) → bool
+  Adds path if under limit
+  Returns true if added
+
+removeProofImage(String path) → bool
+  Removes path from list
+  Returns true if removed
+
+================================================================================
+                            LEDGER SERVICE
+================================================================================
+
+CLASS: LedgerService
+LOCATION: lib/services/ledger_service.dart
+
+METHODS:
+─────────────────────────────────────────────────────────────────────────────
+getAllParties() → Future<List<LedgerParty>>
+  Returns all parties ordered by name
+
+getParty(int id) → Future<LedgerParty?>
+  Returns single party by ID
+
+addParty(LedgerParty) → Future<int>
+  Inserts new party, returns ID
+
+updateParty(LedgerParty) → Future<void>
+  Updates existing party
+
+deleteParty(int id) → Future<void>
+  Deletes party and all transactions
+
+partyHasTransactions(int partyId) → Future<bool>
+  Checks if party has any transactions
+
+getTransactionsForParty(int partyId) → Future<List<LedgerTransaction>>
+  Returns all transactions for party, ordered by date desc
+
+addTransaction(LedgerTransaction) → Future<int>
+  Inserts new transaction, returns ID
+
+updateTransaction(LedgerTransaction) → Future<void>
+  Updates existing transaction
+
+deleteTransaction(int id) → Future<void>
+  Deletes transaction (images handled separately)
+
+getSummary() → Future<LedgerSummary>
+  Calculates total You Will Get / You Will Give
+
+getAllPartiesWithBalance() → Future<List<LedgerPartyWithBalance>>
+  Returns parties with calculated balances
+
+searchParties(String query) → Future<List<LedgerParty>>
+  Search by name or phone
+
+getAllProofImagePaths() → Future<List<String>>
+  Returns all image paths in database (for cleanup)
+
+================================================================================
+                           SCREEN FLOW
+================================================================================
+
+┌─────────────────────┐
+│   Ledger Dashboard  │
+│   (Party List)      │
+└──────────┬──────────┘
+           │
+           ├── Tap Party ──────────────────────────────────────────┐
+           │                                                        │
+           ▼                                                        ▼
+┌─────────────────────────┐                          ┌─────────────────────────┐
+│   Party Detail Screen   │                          │     Add Party Screen    │
+│                         │                          │                         │
+│  - Party Info           │                          │  - Name (required)      │
+│  - Balance Summary      │                          │  - Phone (optional)     │
+│  - Add Transaction [+]   │                          │  - Type (debtor/credit)│
+│  - Transaction List     │                          │  - Opening Balance      │
+│    └─ Tap to View       │                          └─────────────────────────┘
+│    └─ Swipe to Delete   │
+│                         │
+│  [Edit Party] [Delete]  │
+└──────────┬──────────────┘
+           │
+           └── Tap Add Transaction ───────────────────────────────────┐
+                                                                     │
+                                                                     ▼
+                                                     ┌─────────────────────────┐
+                                                     │  Add Transaction Screen │
+                                                     │                         │
+                                                     │  - Type (give/take)     │
+                                                     │  - Amount               │
+                                                     │  - Date                 │
+                                                     │  - Remark               │
+                                                     │  - Proof Images [+]    │
+                                                     │    (up to 4)            │
+                                                     │                         │
+                                                     │  [Save Transaction]     │
+                                                     └─────────────────────────┘
+
+================================================================================
+                          IMAGE STORAGE DETAILS
+================================================================================
+
+STORAGE LOCATION:
+─────────────────────────────────────────────────────────────────────────────
+<app_documents>/ledger_proofs/<uuid>.webp
+or
+<app_documents>/ledger_proofs/<uuid>.png (fallback)
+
+IMAGE PROCESSING:
+─────────────────────────────────────────────────────────────────────────────
+1. User selects/captures image
+2. Image read as bytes (max 4096x4096 from picker)
+3. Compressed to max 1200x1200
+4. Quality: 100% (no compression loss)
+5. Format: WebP (with PNG fallback)
+6. Saved with UUID filename
+
+JSON STORAGE:
+─────────────────────────────────────────────────────────────────────────────
+proof_images column stores JSON array:
+  '["/path/to/image1.webp", "/path/to/image2.webp"]'
+
+================================================================================
+                              EDGE CASES
+================================================================================
+
+1. IMAGE HANDLING
+   ──────────────
+   [x] Handle WebP compression failure → fallback to PNG
+   [x] Validate images before saving
+   [x] Clean up orphaned images at startup
+   [x] Mark images for deferred cleanup on delete failure
+   [x] Prevent adding more than 4 images
+   [x] Handle missing/deleted images gracefully
+
+2. DATABASE
+   ─────────
+   [x] Delete party only if no transactions
+   [x] JSON decode errors return empty list
+   [x] Null proof_images handled correctly
+   [x] Duplicate image paths deduplicated
+
+3. BALANCE CALCULATION
+   ────────────────────
+   For Debtor (owes you money):
+     balance = openingBalance + (you take) - (you give)
+     If positive: You will GET this amount
+     If negative: They need to PAY more
+
+   For Creditor (you owe money):
+     balance = openingBalance + (you give) - (you take)
+     If positive: You will GIVE this amount
+     If negative: You need to TAKE more
+
+4. TRANSACTION DELETE ORDER
+   ─────────────────────────
+   1. Delete DB record first (source of truth)
+   2. Then delete images (now orphaned)
+   3. If DB fails, DO NOT delete images
+
+================================================================================
+                              TESTING NOTES
+================================================================================
+
+TEST SCENARIOS:
+─────────────────────────────────────────────────────────────────────────────
+□ Add party with all fields
+□ Add party with minimum fields (name only)
+□ Edit party details
+□ Delete party with no transactions
+□ Try to delete party with transactions (should fail)
+□ Add transaction (give) with no images
+□ Add transaction (take) with 4 images
+□ Edit transaction to add/remove images
+□ Delete transaction (verify images deleted)
+□ Add duplicate image path (should be deduplicated)
+□ View image in full screen
+□ Search parties
+□ Filter parties (All/Debtors/Creditors)
+□ App restart with orphaned images
+□ Camera permission denied
+□ Gallery permission denied
+□ Very large image (>10MB) handling
+□ Corrupted image file handling
+
+================================================================================
+                         PACKAGE DEPENDENCIES
+================================================================================
+
+pubspec.yaml additions:
+─────────────────────────────────────────────────────────────────────────────
+dependencies:
+  flutter_image_compress: ^2.3.0     # Image resize/compress
+  uuid: ^4.5.1                       # Generate unique filenames
+
+Already included:
+  image_picker                        # Camera/gallery access
+  path_provider                       # App directories
+  path                               # Path manipulation
+
+================================================================================
+                              KNOWN ISSUES
+================================================================================
+
+1. [SESSION 9] Navigation wrapper mode - child screens may need refresh
+2. Orphan cleanup not called at app startup yet
+3. No periodic orphan cleanup scheduling
+
+================================================================================
+                              SESSION LOG
+================================================================================
+
+SESSION 7 (Apr 13, 2026) - Initial Implementation
+  - Added proofImages field to LedgerTransaction model
+  - Added proof_images column to database
+  - Created LedgerImageService for image handling
+  - Updated PartyDetailScreen with proof section UI
+
+SESSION 9 (Apr 13, 2026) - Bug Fixes & Cleanup
+  - Fixed WebP/PNG extension handling
+  - Added image validation with header checks
+  - Added orphan cleanup mechanism
+  - Fixed delete order (DB first, images second)
+  - Fixed JSON decoding with error handling
+  - Simplified navigation wrappers
+
+================================================================================

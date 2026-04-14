@@ -8,7 +8,12 @@ import 'customer_detail_screen.dart';
 import 'add_customer_screen.dart';
 
 class CustomerListScreen extends StatefulWidget {
-  const CustomerListScreen({super.key});
+  final bool inStandaloneMode;
+
+  const CustomerListScreen({
+    super.key,
+    this.inStandaloneMode = true,
+  });
 
   @override
   State<CustomerListScreen> createState() => _CustomerListScreenState();
@@ -65,7 +70,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
           final nameLower = c.name.toLowerCase();
           final phoneLower = (c.phone ?? '').toLowerCase();
           final queryLower = query.toLowerCase();
-          return nameLower.contains(queryLower) || phoneLower.contains(queryLower);
+          return nameLower.contains(queryLower) ||
+              phoneLower.contains(queryLower);
         }).toList();
       }
     });
@@ -130,99 +136,109 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Customers'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadCustomers,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: _filterCustomers,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or phone...',
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterCustomers('');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  Widget _buildContent() {
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _searchController,
+                onChanged: _filterCustomers,
+                decoration: InputDecoration(
+                  hintText: 'Search by name or phone...',
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppTheme.primaryColor),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            _filterCustomers('');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_filteredCustomers.length} ${_filteredCustomers.length == 1 ? 'Customer' : 'Customers'}',
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${_filteredCustomers.length} ${_filteredCustomers.length == 1 ? 'Customer' : 'Customers'}',
-                        style: const TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredCustomers.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadCustomers,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 16),
+                        itemCount: _filteredCustomers.length,
+                        itemBuilder: (context, index) {
+                          final customer = _filteredCustomers[index];
+                          return _buildCustomerCard(customer);
+                        },
                       ),
                     ),
-                  ],
-                ),
-              ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.inStandaloneMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Customers'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadCustomers,
             ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredCustomers.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadCustomers,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 80),
-                          itemCount: _filteredCustomers.length,
-                          itemBuilder: (context, index) {
-                            final customer = _filteredCustomers[index];
-                            return _buildCustomerCard(customer);
-                          },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddCustomerScreen()),
-        ).then((_) => _loadCustomers()),
-        child: const Icon(Icons.person_add),
-      ),
+          ],
+        ),
+        body: _buildContent(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddCustomerScreen()),
+          ).then((_) => _loadCustomers()),
+          child: const Icon(Icons.person_add),
+        ),
+      );
+    }
+
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: _buildContent(),
     );
   }
 
@@ -242,7 +258,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _searchQuery.isEmpty ? Icons.people_outline : Icons.search_off,
+                  _searchQuery.isEmpty
+                      ? Icons.people_outline
+                      : Icons.search_off,
                   size: 64,
                   color: AppTheme.primaryColor,
                 ),
@@ -265,16 +283,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 24),
-              if (_searchQuery.isEmpty)
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddCustomerScreen()),
-                  ).then((_) => _loadCustomers()),
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Add Customer'),
-                ),
             ],
           ),
         ),
@@ -301,7 +309,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               foregroundColor: Colors.white,
               icon: Icons.visibility,
               label: 'View',
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.horizontal(left: Radius.circular(12)),
             ),
             SlidableAction(
               onPressed: (_) => _deleteCustomer(customer),
@@ -309,7 +318,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               foregroundColor: Colors.white,
               icon: Icons.delete,
               label: 'Delete',
-              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.horizontal(right: Radius.circular(12)),
             ),
           ],
         ),
@@ -332,7 +342,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                     radius: 28,
                     backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                     child: Text(
-                      customer.name.isNotEmpty ? customer.name.substring(0, 1).toUpperCase() : '?',
+                      customer.name.isNotEmpty
+                          ? customer.name.substring(0, 1).toUpperCase()
+                          : '?',
                       style: const TextStyle(
                         color: AppTheme.primaryColor,
                         fontSize: 20,
@@ -355,13 +367,15 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.phone, size: 14, color: Colors.grey.shade600),
+                            Icon(Icons.phone,
+                                size: 14, color: Colors.grey.shade600),
                             const SizedBox(width: 4),
                             Text(
                               customer.phone != null
                                   ? Formatters.formatPhone(customer.phone!)
                                   : 'No phone',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 13),
                             ),
                           ],
                         ),
@@ -369,12 +383,15 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.work, size: 14, color: Colors.grey.shade600),
+                              Icon(Icons.work,
+                                  size: 14, color: Colors.grey.shade600),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   customer.occupation!,
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -390,7 +407,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.chevron_right, color: Colors.grey.shade600),
+                    child:
+                        Icon(Icons.chevron_right, color: Colors.grey.shade600),
                   ),
                 ],
               ),

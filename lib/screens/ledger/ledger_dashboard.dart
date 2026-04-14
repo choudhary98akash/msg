@@ -9,7 +9,12 @@ import 'add_party_screen.dart';
 import 'party_detail_screen.dart';
 
 class LedgerDashboard extends StatefulWidget {
-  const LedgerDashboard({super.key});
+  final bool inStandaloneMode;
+
+  const LedgerDashboard({
+    super.key,
+    this.inStandaloneMode = true,
+  });
 
   @override
   State<LedgerDashboard> createState() => _LedgerDashboardState();
@@ -158,20 +163,36 @@ class _LedgerDashboardState extends State<LedgerDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Ledger'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: _isLoading
+    if (widget.inStandaloneMode) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Ledger'),
+          backgroundColor: AppTheme.primaryColor,
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadData,
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  _buildSummaryCards(),
+                  _buildSearchBar(),
+                  _buildFilterChips(),
+                  Expanded(child: _buildPartyList()),
+                ],
+              ),
+      );
+    }
+
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
@@ -181,12 +202,6 @@ class _LedgerDashboardState extends State<LedgerDashboard> {
                 Expanded(child: _buildPartyList()),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToAddParty,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Party'),
-        backgroundColor: AppTheme.primaryColor,
-      ),
     );
   }
 

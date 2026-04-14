@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'ledger_party_model.dart';
 
 class LedgerTransaction {
@@ -44,13 +45,21 @@ class LedgerTransaction {
   factory LedgerTransaction.fromMap(Map<String, dynamic> map) {
     List<String>? images;
     final proofImagesData = map['proof_images'];
-    if (proofImagesData != null && proofImagesData.toString().isNotEmpty) {
+    if (proofImagesData != null &&
+        proofImagesData.toString().trim().isNotEmpty) {
       try {
         final decoded = jsonDecode(proofImagesData as String);
         if (decoded is List) {
-          images = decoded.cast<String>();
+          images = decoded
+              .whereType<String>()
+              .where((s) => s.trim().isNotEmpty)
+              .toSet()
+              .toList();
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Failed to decode images JSON: $e');
+        images = [];
+      }
     }
 
     return LedgerTransaction(

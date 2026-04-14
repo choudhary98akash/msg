@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../utils/formatters.dart';
 import '../../config/theme.dart';
-import '../customer/customer_list_screen.dart';
+import '../../app.dart';
 import '../customer/add_customer_screen.dart';
 import '../booking/booking_form_screen.dart';
-import '../booking/booking_list_screen.dart';
-import '../payment/payment_list_screen.dart';
 import '../payment/add_payment_screen.dart';
-import '../quotation/quotation_list_screen.dart';
 import '../quotation/quotation_form_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -196,10 +193,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Total registered',
               Icons.people,
               AppTheme.primaryColor,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-              ).then((_) => _loadData()),
+              () {
+                MainNavigationState.of(context)?.switchToCustomersTab();
+                _loadData();
+              },
             ),
             _buildStatCard(
               'Active Bookings',
@@ -207,10 +204,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Plot bookings',
               Icons.home_work,
               AppTheme.secondaryColor,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BookingListScreen()),
-              ).then((_) => _loadData()),
+              () {
+                MainNavigationState.of(context)?.switchToBookingsTab();
+                _loadData();
+              },
             ),
             _buildStatCard(
               'Payments',
@@ -218,10 +215,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Total records',
               Icons.payment,
               const Color(0xFF1976D2),
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PaymentListScreen()),
-              ).then((_) => _loadData()),
+              () {
+                MainNavigationState.of(context)?.switchToPaymentsTab();
+                _loadData();
+              },
             ),
             _buildStatCard(
               'Quotations',
@@ -229,10 +226,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Pending quotes',
               Icons.description,
               const Color(0xFF7B1FA2),
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QuotationListScreen()),
-              ).then((_) => _loadData()),
+              () {
+                MainNavigationState.of(context)?.switchToQuotationsTab();
+                _loadData();
+              },
             ),
           ],
         ),
@@ -611,10 +608,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PaymentListScreen()),
-                ).then((_) => _loadData()),
+                onPressed: () {
+                  MainNavigationState.of(context)?.switchToPaymentsTab();
+                  _loadData();
+                },
                 child: const Text('View All'),
               ),
             ],

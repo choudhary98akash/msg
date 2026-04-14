@@ -1,7 +1,78 @@
 # Session Context - M.S. Group Properties
 
 **Date:** Friday, March 20, 2026 (Session 2)
-**Last Updated:** Friday, March 27, 2026 (Session 6 - Quotation Cleanup & Bidirectional Down Payment)
+**Last Updated:** Monday, April 13, 2026 (Session 8 - Bottom Navigation Consolidation)
+
+---
+
+## Session 8 - Apr 13, 2026
+
+### Changes Made
+
+#### Bottom Navigation Consolidation with Segmented Control
+Reduced bottom navigation from 6 tabs to 3 tabs with iOS-style Segmented Control for sub-navigation.
+
+**New Structure:**
+| Tab | Contains | Sub-Navigation |
+|-----|----------|---------------|
+| Dashboard | Dashboard | None |
+| Customers | Customers + Bookings | Segmented Control (Customers \| Bookings) |
+| Finance | Payments + Quotations + Ledger | Segmented Control (Payments \| Quotes \| Ledger) |
+
+**Navigation Features:**
+- Segmented Control at top of each section for sub-navigation
+- Filter Chips below search bar for status/type filtering
+- Each segment has its own independent search context
+- State preserved via IndexedStack when switching segments
+
+**Filter Chips:**
+| Screen | Filter Options |
+|--------|---------------|
+| Customers | (no filter chips) |
+| Bookings | All, Active, Completed |
+| Payments | All, Token, Down, EMI |
+| Quotations | (no filter chips) |
+| Ledger | All, Debtors, Creditors |
+
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| `customers_wrapper_screen.dart` | Wrapper with SegmentedControl for Customers + Bookings |
+| `finance_wrapper_screen.dart` | Wrapper with SegmentedControl for Payments + Quotations + Ledger |
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `app.dart` | 3-tab navigation with GlobalKey access to wrapper states |
+| `dashboard_screen.dart` | Updated stat cards to switch tabs using MainNavigationState |
+| `customer_list_screen.dart` | Added `inStandaloneMode` parameter |
+| `booking_list_screen.dart` | Added `inStandaloneMode`, FilterChips, removed TabController |
+| `payment_list_screen.dart` | Added `inStandaloneMode`, FilterChips, removed TabController |
+| `quotation_list_screen.dart` | Added `inStandaloneMode` parameter |
+| `ledger_dashboard.dart` | Added `inStandaloneMode` parameter |
+
+**Navigation Methods:**
+- `switchToCustomersTab()` - Switch to Customers tab
+- `switchToBookingsTab()` - Switch to Customers tab → Bookings segment
+- `switchToPaymentsTab()` - Switch to Finance tab → Payments segment
+- `switchToQuotationsTab()` - Switch to Finance tab → Quotes segment
+- `switchToLedgerTab()` - Switch to Finance tab → Ledger segment
+
+**UX Flow:**
+```
+Dashboard → Tap "Customers" stat → Switches to Customers (Customers segment)
+Dashboard → Tap "Bookings" stat → Switches to Customers (Bookings segment)
+Dashboard → Tap "Payments" stat → Switches to Finance (Payments segment)
+Dashboard → Tap "Quotations" stat → Switches to Finance (Quotes segment)
+```
+
+---
+
+## Session 7 - Apr 13, 2026 (Earlier)
+
+### Ledger Proof Images Feature
+
+See Session 8 changes (implemented in Session 7).
 
 ---
 
@@ -211,6 +282,8 @@ git add . && git commit -m "message" && git push origin main
 3. Add PDF letterhead template
 4. Excel export feature
 5. Database backup/restore
+6. Add proof images to ledger transactions (max 4 per transaction) - DONE
+7. Consolidate bottom navigation to 3 tabs - DONE
 
 ---
 

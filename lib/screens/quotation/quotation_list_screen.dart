@@ -8,7 +8,12 @@ import 'quotation_form_screen.dart';
 import 'quotation_detail_screen.dart';
 
 class QuotationListScreen extends StatefulWidget {
-  const QuotationListScreen({super.key});
+  final bool inStandaloneMode;
+
+  const QuotationListScreen({
+    super.key,
+    this.inStandaloneMode = true,
+  });
 
   @override
   State<QuotationListScreen> createState() => _QuotationListScreenState();
@@ -105,18 +110,65 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quotations'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadQuotations,
+    if (widget.inStandaloneMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Quotations'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadQuotations,
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(65),
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                  _filterQuotations();
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search by customer, plot or location...',
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppTheme.primaryColor),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                            _filterQuotations();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(65),
-          child: Container(
+        ),
+        body: _buildBody(),
+      );
+    }
+
+    // In wrapper mode - just body content
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: Column(
+        children: [
+          // Search bar
+          Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: TextField(
@@ -150,69 +202,66 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
               ),
             ),
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_filteredQuotations.length} ${_filteredQuotations.length == 1 ? 'Quotation' : 'Quotations'}',
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                if (!_isLoading && _filteredQuotations.isNotEmpty)
-                  Text(
-                    'Total: ${Formatters.formatCurrency(_filteredQuotations.fold<double>(0, (sum, q) => sum + q.totalPrice))}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredQuotations.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadQuotations,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 80),
-                          itemCount: _filteredQuotations.length,
-                          itemBuilder: (context, index) {
-                            final quotation = _filteredQuotations[index];
-                            return _buildQuotationCard(quotation);
-                          },
-                        ),
-                      ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const QuotationFormScreen()),
-        ).then((_) => _loadQuotations()),
-        child: const Icon(Icons.add),
-      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_filteredQuotations.length} ${_filteredQuotations.length == 1 ? 'Quotation' : 'Quotations'}',
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (!_isLoading && _filteredQuotations.isNotEmpty)
+                Text(
+                  'Total: ${Formatters.formatCurrency(_filteredQuotations.fold<double>(0, (sum, q) => sum + q.totalPrice))}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredQuotations.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadQuotations,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 80),
+                        itemCount: _filteredQuotations.length,
+                        itemBuilder: (context, index) {
+                          final quotation = _filteredQuotations[index];
+                          return _buildQuotationCard(quotation);
+                        },
+                      ),
+                    ),
+        ),
+      ],
     );
   }
 

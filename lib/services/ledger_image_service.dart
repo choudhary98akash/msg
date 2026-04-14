@@ -12,9 +12,14 @@ class LedgerImageService {
   static const int maxProofImages = 4;
   static const int maxInputSizeMB = 10;
   static const String folderName = 'ledger_proofs';
+  static const int minFileSizeBytes = 100;
+  static const int maxFileSizeBytes = 50 * 1024 * 1024;
 
   final ImagePicker _picker = ImagePicker();
   final Uuid _uuid = const Uuid();
+
+  final Set<String> _pendingOrphans = {};
+  bool _cleanupScheduled = false;
 
   Future<String?> pickFromCamera() async {
     try {
@@ -50,18 +55,24 @@ class LedgerImageService {
 
   Future<String?> _processAndSave(Uint8List bytes) async {
     try {
-      if (!_validateSize(bytes)) {
+      if (!_validateInputSize(bytes)) {
         throw Exception('Image size exceeds ${maxInputSizeMB}MB limit');
       }
 
-      final processedBytes = await _resizeImage(bytes);
-      if (processedBytes == null) {
+      final result = await _resizeImage(bytes);
+      if (result == null) {
         throw Exception('Failed to process image');
       }
 
-      final savedPath = await _saveToStorage(processedBytes);
+      final savedPath =
+          await _saveToStorage(result.bytes, isWebp: result.isWebp);
       if (savedPath == null) {
         throw Exception('Failed to save image');
+      }
+
+      if (!await validateImage(savedPath)) {
+        await deleteImage(savedPath);
+        throw Exception('Image validation failed');
       }
 
       return savedPath;
@@ -71,12 +82,13 @@ class LedgerImageService {
     }
   }
 
-  bool _validateSize(Uint8List bytes) {
+  bool _validateInputSize(Uint8List bytes) {
     final sizeMB = bytes.length / (1024 * 1024);
     return sizeMB <= maxInputSizeMB;
   }
 
-  Future<Uint8List?> _resizeImage(Uint8List bytes) async {
+  Future<({Uint8List bytes, bool isWebp})?> _resizeImage(
+      Uint8List bytes) async {
     try {
       final decodedImage = await FlutterImageCompress.compressWithList(
         bytes,
@@ -85,7 +97,7 @@ class LedgerImageService {
         quality: 100,
         format: CompressFormat.webp,
       );
-      return Uint8List.fromList(decodedImage);
+      return (bytes: Uint8List.fromList(decodedImage), isWebp: true);
     } catch (e) {
       debugPrint('WebP conversion failed, trying PNG fallback: $e');
       try {
@@ -96,7 +108,7 @@ class LedgerImageService {
           quality: 100,
           format: CompressFormat.png,
         );
-        return Uint8List.fromList(pngResult);
+        return (bytes: Uint8List.fromList(pngResult), isWebp: false);
       } catch (pngError) {
         debugPrint('PNG fallback also failed: $pngError');
         return null;
@@ -104,12 +116,14 @@ class LedgerImageService {
     }
   }
 
-  Future<String?> _saveToStorage(Uint8List bytes) async {
+  Future<String?> _saveToStorage(Uint8List bytes,
+      {required bool isWebp}) async {
     try {
       final directory = await _getStorageDirectory();
       if (directory == null) return null;
 
-      final filename = '${_uuid.v4()}.webp';
+      final extension = isWebp ? 'webp' : 'png';
+      final filename = '${_uuid.v4()}.$extension';
       final filePath = path.join(directory.path, filename);
       final file = File(filePath);
       await file.writeAsBytes(bytes);
@@ -137,6 +151,50 @@ class LedgerImageService {
     }
   }
 
+  Future<bool> validateImage(String imagePath) async {
+    try {
+      final file = File(imagePath);
+
+      if (!file.existsSync()) return false;
+
+      final storageDir = await _getStorageDirectory();
+      if (storageDir == null) return false;
+
+      final normalizedPath = file.resolveSymbolicLinksSync();
+      if (!normalizedPath.startsWith(storageDir.path)) return false;
+
+      final stat = await file.stat();
+      if (stat.size < minFileSizeBytes) return false;
+      if (stat.size > maxFileSizeBytes) return false;
+
+      final headerBytes = Uint8List.fromList(await file.openRead(0, 12).first);
+      if (!_isValidImageHeader(headerBytes)) return false;
+
+      return true;
+    } catch (e) {
+      debugPrint('Image validation failed: $e');
+      return false;
+    }
+  }
+
+  bool _isValidImageHeader(Uint8List bytes) {
+    if (bytes.length < 4) return false;
+
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return true;
+
+    if (bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47) return true;
+
+    if (bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46) return true;
+
+    return false;
+  }
+
   Future<bool> deleteImage(String imagePath) async {
     try {
       final file = File(imagePath);
@@ -159,6 +217,43 @@ class LedgerImageService {
       }
     }
     return deletedCount;
+  }
+
+  Future<void> markOrphan(String orphanPath) async {
+    _pendingOrphans.add(orphanPath);
+    _scheduleCleanup();
+  }
+
+  void _scheduleCleanup() {
+    if (_cleanupScheduled) return;
+    _cleanupScheduled = true;
+
+    Future.delayed(const Duration(seconds: 5), () {
+      _processOrphans();
+      _cleanupScheduled = false;
+
+      if (_pendingOrphans.isNotEmpty) {
+        _scheduleCleanup();
+      }
+    });
+  }
+
+  Future<void> _processOrphans() async {
+    final toClean = List<String>.from(_pendingOrphans);
+    _pendingOrphans.clear();
+
+    for (final orphanPath in toClean) {
+      try {
+        final file = File(orphanPath);
+        if (await file.exists()) {
+          await file.delete();
+          debugPrint('Cleaned orphan: $orphanPath');
+        }
+      } catch (e) {
+        debugPrint('Failed to clean orphan: $orphanPath - $e');
+        _pendingOrphans.add(orphanPath);
+      }
+    }
   }
 
   Future<void> cleanupOrphanedImages(List<String> validPaths) async {

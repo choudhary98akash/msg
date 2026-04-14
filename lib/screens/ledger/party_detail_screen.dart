@@ -629,16 +629,32 @@ class _PartyDetailScreenState extends State<PartyDetailScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              if (transaction.proofImages != null &&
-                  transaction.proofImages!.isNotEmpty) {
-                await _imageService.deleteImages(transaction.proofImages!);
-              }
-              await _ledgerService.deleteTransaction(transaction.id!);
-              _loadData();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Transaction deleted')),
-                );
+              try {
+                await _ledgerService.deleteTransaction(transaction.id!);
+
+                if (transaction.proofImages != null &&
+                    transaction.proofImages!.isNotEmpty) {
+                  for (final imagePath in transaction.proofImages!) {
+                    try {
+                      await _imageService.deleteImage(imagePath);
+                    } catch (e) {
+                      await _imageService.markOrphan(imagePath);
+                    }
+                  }
+                }
+
+                _loadData();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Transaction deleted')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Delete failed: $e')),
+                  );
+                }
               }
             },
             child: const Text('Delete',
